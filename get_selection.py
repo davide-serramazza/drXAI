@@ -1,7 +1,7 @@
 import timeit
 import argparse
 
-from utils.helpers import set_seed
+from utils.helpers import *
 from utils.data_utils import *
 from utils.trainers import *
 from drXAI import drXAI
@@ -14,22 +14,10 @@ def main(args):
 	results_dir = args.explainer_results_dir
 	random_seed = args.random_seed
 
-	# arguments about classifiers
-	# TODO function!
-	models_batchSizes = args.classifiers_batchSizes
-	model_names = models_batchSizes[0::2]
-	batch_sizeS = [ int(bs) for bs in models_batchSizes[1::2]]
-	for model_name in model_names:
-		assert model_name in trainer_dict.keys(), "Classifier name not recognized"
-	#
-	#batch_size = args.batch_size
+	# extract classifier and batch size argument
+	model_names, batch_sizes = extract_classifiers_batchSizes(args.classifiers_batchSizes)
 
-	channel_selection =  args.channel_selection
-	time_points_selection = args.time_points_selection
-	# only channel selection or time points can be selected
-	assert channel_selection!= time_points_selection, "Only channel selection or time points can be selected"
-
-	print("performing channel selection") if channel_selection else print("performing time point selection")
+	channel_selection = extraction_method(args.channel_selection, args.time_point_selection)
 
 	# get device, set random seed and instantiate result data structure
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -47,7 +35,7 @@ def main(args):
 		# create an entry in result's data structure, initialized with 'symbolic label -> numeric label' map
 		results = {'labels_map' : data['labels_map']}
 
-		for model_name,batch_size in zip(model_names,batch_sizeS):
+		for model_name,batch_size in zip(model_names,batch_sizes):
 			trainer = trainer_dict[model_name]
 			############################# train ####################################
 
@@ -65,10 +53,9 @@ def main(args):
 
 			################################ explain ###########################################
 
-			print(data['train_set']['X'].shape)
 			# get explaining set i.e. test set in case of small datasets or subset in case of big datasets
+			# TODO saved idx of sampled items
 			X2explain , labels = sample_instances(data['train_set']['X'] , data['train_set']['y'], 50)
-			print(data['train_set']['X'].shape)
 
 			backgrounds2use = ["zeros","SMOTE","Proto"]	#hardcoded backgrounds to be used
 
@@ -105,16 +92,6 @@ def main(args):
 				np.savez_compressed(results_path, results=results)
 
 
-def str2bool(v):
-	if isinstance(v, bool):
-		return v
-	if v.lower() in ('yes', 'true', 't', 'y', '1'):
-		return True
-	elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-		return False
-	else:
-		raise argparse.ArgumentTypeError('Boolean value expected.')
-
 
 
 if __name__ == '__main__':
@@ -124,11 +101,11 @@ if __name__ == '__main__':
 	parser.add_argument("explainer_results_dir", type=str, help="directory where to save classifiers and "
 				 "attributions info including related selection. Format is one file per dataset")
 	parser.add_argument("random_seed", type=int, help="random seed to be used for reproducibility")
-	parser.add_argument("--classifiers_batchSizes", nargs='+',help="classifier name is either hydra,miniRocket or ConvTran")
-#	parser.add_argument("batch_size", type=int,help="batch size for training and explaining")
+	parser.add_argument("--classifiers_batchSizes", nargs='+',help="classifier name is either hydra,"
+																   "miniRocket or ConvTran")
 	parser.add_argument('--channel_selection',type=str2bool, default=False, help="whether to perform "
 																				 "channel selection")
-	parser.add_argument('--time_points_selection',type=str2bool, default=False, help="whether to perform "
+	parser.add_argument('--time_point_selection',type=str2bool, default=False, help="whether to perform "
 																					"time point selection"																				 "selection")
 
 	args = parser.parse_args()

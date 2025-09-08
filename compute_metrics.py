@@ -4,6 +4,7 @@ from pprint import pprint
 
 from utils.data_utils import *
 from utils.get_accuracy import get_accuracies
+from utils.helpers import extract_classifiers_batchSizes
 from explanations import get_elbow_selections
 from utils.helpers import get_computed_AI_selections
 
@@ -12,10 +13,9 @@ def main(args):
 	explanation_dir = args.explanation_dir
 	saved_models_path = args.saved_models_path
 	dataset_base_path = args.dataset_dir
-	model_name = args.classifier
-
-	batch_size = args.batch_size
 	result_path = args.result_file
+
+	model_name,batch_size = extract_classifiers_batchSizes(args.classifiers_batchSizes)
 	elbow_selections_path = args.elbow_selections
 
 	channel_selection =  not (elbow_selections_path==None)
@@ -59,9 +59,9 @@ if __name__ == '__main__':
 	parser.add_argument("explanation_dir", type=str, help="dir where explanation results are stored")
 	parser.add_argument("saved_models_path", type=str, help="folder where models will be saved")
 	parser.add_argument("dataset_dir", type=str, help="directory where datasets are located.")
-	parser.add_argument("classifier", type=str,help="classifier name is either hydra,miniRocket or ConvTran")
-	parser.add_argument("batch_size", type=int,help="batch size for training and explaining")
 	parser.add_argument("result_file", type=str, help="file where to store new accuracies")
+	parser.add_argument("--classifiers_batchSizes", nargs='+',help="classifier name is either hydra,"
+																   "miniRocket or ConvTran")
 	parser.add_argument("--elbow_selections", type=str,  nargs='?',default=None, help="optional argument."
 		"file path where elbow selections are saved, implicitly defining whether channel selection (provided) """
 			"or time point selection(not provided)")
