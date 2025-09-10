@@ -21,37 +21,44 @@ def set_seed(seed: int = 42):
 		torch.cuda.manual_seed(seed)
 		torch.cuda.manual_seed_all(seed)
 
-def get_computed_AI_selections(saliency_map_dict, selection_dict, accuracies, info, channel_sel):
+#TODO check at this accuracies argument
+def get_computed_AI_selections(saliency_map_dict, selection_dict,  info, channel_sel):
 
 	key2find = 'selected_channels_intersection' if channel_sel else 'selected_timePoints_intersection'
+	# TODO still need to come with a resonable solution here!
 	for k in saliency_map_dict.keys():
 		if k=='labels_map':
 			continue
 
 		if k=='accuracy':
-			accuracies[info[1:]] = saliency_map_dict[k]
+			# prepare an entry in dict for current classifier
+			model_name = info.replace("_","")
+			init_acc = saliency_map_dict[k]
+			selection_dict[model_name] = { 'initial accuracy' :  init_acc}
+
 		elif k==key2find:
 			#k_name = k.replace(key2find,'')
 			model, explainer = info.split("_")[1] , "_".join( info.split("_")[2:] )
 			#for model in selection_dict.keys():
-			selection_dict[model][explainer] = saliency_map_dict[k]
+			selection_dict[model][explainer] = { 'selection' : saliency_map_dict[k] }
 
 		elif type(saliency_map_dict[k])==dict :
 			get_computed_AI_selections(
-				saliency_map_dict[k],selection_dict,accuracies,
+				saliency_map_dict[k],selection_dict,
 				info+"_"+str(k), channel_sel)
 
-	return selection_dict, accuracies
+	return selection_dict
 
 
 ##################### functions to check arguments #####################
 
 def extraction_method(channel_selection , time_point_selection):
 
+	#TODO to check!!
 	# only channel selection or time points can be selected
 	assert channel_selection != time_point_selection, "Only channel selection or time points can be selected"
 	print("performing channel selection") if channel_selection else print("performing time point selection")
-	return channel_selection, time_point_selection
+	return channel_selection
 
 
 def extract_classifiers_batchSizes(models_batchSizes: list[str]) -> tuple[list[str], list[int]]:

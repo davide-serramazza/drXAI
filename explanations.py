@@ -116,8 +116,10 @@ def extract_selection_avgFirst(attribution, channels=False):
 
 def get_elbow_selections(current_data,elbows):
 	return {
-		'elbow_pairwise' : elbows[current_data]['Pairwise'] ,
-		'elbow_sum' : elbows[current_data]['Sum']
+		'elbow_pairwise' : 	{'selection' :
+								   elbows[current_data]['Pairwise'] },
+		'elbow_sum' :  		{'selection' :
+								  elbows[current_data]['Sum']}
 	}
 
 

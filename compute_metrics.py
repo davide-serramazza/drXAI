@@ -1,6 +1,5 @@
 import argparse
 from copy import deepcopy
-from pprint import pprint
 
 from utils.data_utils import *
 from utils.get_accuracy import get_accuracies
@@ -15,7 +14,7 @@ def main(args):
 	dataset_base_path = args.dataset_dir
 	result_path = args.result_file
 
-	model_name,batch_size = extract_classifiers_batchSizes(args.classifiers_batchSizes)
+	model_names,batch_sizes = extract_classifiers_batchSizes(args.classifiers_batchSizes)
 	elbow_selections_path = args.elbow_selections
 
 	channel_selection =  not (elbow_selections_path==None)
@@ -40,15 +39,14 @@ def main(args):
 
 		# get elbow selections and AI's ones
 		elbow_selections = get_elbow_selections(current_dataset,all_elbow_selections) if channel_selection else {}
-		all_selections, init_accuracies = get_computed_AI_selections(XAI_results,{
-			'ConvTran' : deepcopy(elbow_selections),
-			'miniRocket': deepcopy(elbow_selections),
-			'hydra' : deepcopy(elbow_selections)
-		},{},"", channel_selection)
+		#TODO improve here all_selections different from init_accuracies and than used for resulting data structure
+		all_selections = get_computed_AI_selections(XAI_results,{
+			k:elbow_selections for k in model_names
+		},"", channel_selection)
 
 
 		# train models on selected dataset versions
-		current_accuracies = get_accuracies(data,saved_models_path, all_selections, model_name,batch_size, init_accuracies,channel_selection)
+		current_accuracies = get_accuracies(data,saved_models_path, all_selections, model_names,batch_sizes,channel_selection)
 		#pprint(current_accuracies ,indent=4)
 		all_accuracies[current_dataset] = current_accuracies
 
