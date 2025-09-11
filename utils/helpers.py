@@ -22,10 +22,10 @@ def set_seed(seed: int = 42):
 		torch.cuda.manual_seed_all(seed)
 
 #TODO check at this accuracies argument
-def get_computed_AI_selections(saliency_map_dict, selection_dict,  info, channel_sel):
+def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  info):
 
 	key2find = 'selected_channels_intersection' if channel_sel else 'selected_timePoints_intersection'
-	# TODO still need to come with a resonable solution here!
+
 	for k in saliency_map_dict.keys():
 		if k=='labels_map':
 			continue
@@ -34,18 +34,23 @@ def get_computed_AI_selections(saliency_map_dict, selection_dict,  info, channel
 			# prepare an entry in dict for current classifier
 			model_name = info.replace("_","")
 			init_acc = saliency_map_dict[k]
-			selection_dict[model_name] = { 'initial accuracy' :  init_acc}
+			if model_name in selection_dict.keys():
+				# select only if in required classifiers!
+				selection_dict[model_name] = { 'initial accuracy' :  init_acc}
 
 		elif k==key2find:
 			#k_name = k.replace(key2find,'')
-			model, explainer = info.split("_")[1] , "_".join( info.split("_")[2:] )
+			model_name, explainer = info.split("_")[1] , "_".join( info.split("_")[2:] )
 			#for model in selection_dict.keys():
-			selection_dict[model][explainer] = { 'selection' : saliency_map_dict[k] }
+			if model_name in selection_dict.keys():
+				# select only if in required classifiers!
+				selection_dict[model_name][explainer] = { 'selection' : saliency_map_dict[k] }
 
 		elif type(saliency_map_dict[k])==dict :
 			get_computed_AI_selections(
-				saliency_map_dict[k],selection_dict,
-				info+"_"+str(k), channel_sel)
+				saliency_map_dict[k],channel_sel,selection_dict,
+				info+"_"+str(k)	# update current info
+			)
 
 	return selection_dict
 

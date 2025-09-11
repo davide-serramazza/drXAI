@@ -58,4 +58,6 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
 				'selection' : selection
 			}
 
+		print(clf_name,"evaluation over!")
+
 	return selections

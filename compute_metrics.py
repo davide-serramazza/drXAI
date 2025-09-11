@@ -39,10 +39,10 @@ def main(args):
 
 		# get elbow selections and AI's ones
 		elbow_selections = get_elbow_selections(current_dataset,all_elbow_selections) if channel_selection else {}
-		#TODO improve here all_selections different from init_accuracies and than used for resulting data structure
-		all_selections = get_computed_AI_selections(XAI_results,{
-			k:elbow_selections for k in model_names
-		},"", channel_selection)
+
+		all_selections = get_computed_AI_selections(saliency_map_dict=XAI_results, channel_sel=channel_selection,
+			selection_dict={ k:elbow_selections for k in model_names },info=""
+			)
 
 
 		# train models on selected dataset versions

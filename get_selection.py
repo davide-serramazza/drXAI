@@ -91,7 +91,7 @@ def main(args):
 				# dump result data structure on disk
 				np.savez_compressed(results_path, results=results)
 
-
+			print(model_name,"selections over!")
 
 
 if __name__ == '__main__':
