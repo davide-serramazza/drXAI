@@ -44,7 +44,19 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 			#for model in selection_dict.keys():
 			if model_name in selection_dict.keys():
 				# select only if in required classifiers!
-				selection_dict[model_name][explainer] = { 'selection' : saliency_map_dict[k] }
+
+				# TODO separate explainer from background?
+				# TODO extract a function here?
+				if saliency_map_dict[k]!=[]:
+					selection =saliency_map_dict[k]
+				else:
+					print(model_name,explainer,"intersection is empty!", end='!\t\t')
+					k1 = 'selected_channels_absoluteFirst'  ; k2 = 'selected_channels_averageFirst'
+					selection = saliency_map_dict[k1] if saliency_map_dict[k1]!=None else saliency_map_dict[k2]
+					print(k1,"as alternative")
+
+				selection_dict[model_name][explainer] = { 'selection' : selection}
+
 
 		elif type(saliency_map_dict[k])==dict :
 			get_computed_AI_selections(

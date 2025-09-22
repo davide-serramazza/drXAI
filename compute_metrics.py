@@ -25,7 +25,7 @@ def main(args):
 
 	# load dataset
 	all_accuracies = {}
-	for current_dataset in sorted(os.listdir(args.dataset_dir ) ):
+	for current_dataset in sorted(os.listdir(args.dataset_dir ) )[10:]:
 
 		# load current dataset
 		print("loading ", current_dataset,"...",end="\t")
@@ -43,7 +43,6 @@ def main(args):
 		all_selections = get_computed_AI_selections(saliency_map_dict=XAI_results, channel_sel=channel_selection,
 			selection_dict={ k:elbow_selections for k in model_names },info=""
 			)
-
 
 		# train models on selected dataset versions
 		current_accuracies = get_accuracies(data,saved_models_path, all_selections, model_names,batch_sizes,channel_selection)
