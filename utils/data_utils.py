@@ -17,29 +17,24 @@ def sample_instances(X , y, n):
 	:return:
 	"""
 
-	# check the unique values in label set
-	class_names, class_index, class_numbs = np.unique(y,return_inverse=True ,return_counts=True)
+	# check the unique values in labels set
+	classes_idx = [np.where(y==id)[0] for id in np.unique(y)]
 
-	# group instances by groups
-	X_grouped = [ X[ np.where(class_index==i)[0] ] for i in range(class_numbs.shape[0]) ]
-	y_grouped = [ y[ np.where(class_index==i)[0] ] for i in range(class_numbs.shape[0]) ]
+	X_sampled = []
+	y_sampled = []
+	sample_idx = []
 
-	X = []
-	y = []
+	for current_class_idx in classes_idx:
 
-	for current_class_instances, current_label in zip(X_grouped,y_grouped):
-
-		assert current_class_instances.shape[0]==current_label.shape[0]
 		# for each class sample up to n elements
-		n_instances = current_class_instances.shape[0]
-		selected = np.random.randint(low=0, high=n_instances,size=n) if n_instances>n else np.array([i for i in range(n_instances)])
+		#selected = np.random.randint(low=0, high=n_instances,size=n) if n_instances>n else np.array([i for i in range(n_instances)])
+		current_n = min(n, len(current_class_idx))
+		selected = np.random.permutation(current_class_idx)[:current_n]
 
-		X.append(current_class_instances[selected]) ; y.append(current_label[selected])
+		sample_idx.append(selected)
+		X_sampled.append(X[selected]) ; y_sampled.append(y[selected])
 
-	# from lists to arrays
-	X = np.concatenate(X); y = np.concatenate(y)
-
-	return X, y
+	return  np.concatenate(X_sampled), np.concatenate(y_sampled), np.concatenate(sample_idx)
 
 
 def load_datasets(dataset_dir, current_dataset ):

@@ -1,6 +1,8 @@
 import timeit
 import argparse
 
+import numpy as np
+
 from utils.helpers import *
 from utils.data_utils import *
 from utils.trainers import *
@@ -18,6 +20,7 @@ def main(args):
 	model_names, batch_sizes = extract_classifiers_batchSizes(args.classifiers_batchSizes)
 
 	channel_selection = extraction_method(args.channel_selection, args.time_point_selection)
+	n_instancesAClass = args.n_sample
 
 	# get device, set random seed and instantiate result data structure
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -32,11 +35,17 @@ def main(args):
 
 		print("\n\n current loaded dataset is....", current_dataset)
 
+		# get explaining set i.e. test set in case of small datasets or subset in case of big datasets
+		X2explain , labels, idx = (data['train_set']['X'] , data['train_set']['y'], -1) 	if n_instancesAClass==-1 else \
+			sample_instances(data['train_set']['X'] , data['train_set']['y'], n_instancesAClass)
+
+
 		# create an entry in result's data structure, initialized with 'symbolic label -> numeric label' map
 		results = {
             'labels_map' : data['labels_map'],
-            'n_features' : data['n_channels'] if channel_selection else data['n_time_points_chunks']
-        }
+            'n_features' : data['n_channels'] if channel_selection else data['n_time_points_chunks'],
+			'sampled_idx' : idx
+		}
 
 		for model_name,batch_size in zip(model_names,batch_sizes):
 			trainer = trainer_dict[model_name]
@@ -49,16 +58,13 @@ def main(args):
 
 			# save model and info in result data structure
 			torch.save(model, os.path.join(saved_models_dir,file_name))
+
 			results[model_name] = {
 				"training_time" : training_time,
-				'accuracy' : current_accuracy
+				'accuracy' : current_accuracy,
 			}
 
 			################################ explain ###########################################
-
-			# get explaining set i.e. test set in case of small datasets or subset in case of big datasets
-			# TODO saved idx of sampled items
-			X2explain , labels = sample_instances(data['train_set']['X'] , data['train_set']['y'], 50)
 
 			backgrounds2use = ["zeros","SMOTE","Proto"]	#hardcoded backgrounds to be used
 
@@ -80,6 +86,7 @@ def main(args):
 
 					# save saliency_maps, selections and other info into data structure
 					results[model_name][b_name][exp_name] = {
+						'sampling_idx' : idx,
 						key_prefix+'averageFirst' : selections[0],
 						key_prefix+'absoluteFirst' : selections[1],
 						key_prefix+'intersection' : list(
@@ -109,7 +116,8 @@ if __name__ == '__main__':
 	parser.add_argument('--channel_selection',type=str2bool, default=False, help="whether to perform "
 																				 "channel selection")
 	parser.add_argument('--time_point_selection',type=str2bool, default=False, help="whether to perform "
-																					"time point selection"																				 "selection")
-
+																					"time point selection")
+	parser.add_argument('--n_sample',type=int, default=-1, help="how many instances to sample for each "
+																 "class. Default is -1, meaning no sample")
 	args = parser.parse_args()
 	main(args)
