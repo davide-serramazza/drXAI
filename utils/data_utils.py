@@ -44,28 +44,31 @@ def sample_instances(X , y, n):
 
 def load_datasets(dataset_dir, current_dataset ):
 
-	# data structure for dataset
-	data = {
-		'train_set': {},
-		'test_set': {},
-		'name' : current_dataset,
-	}
+	# load data
 
 	X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TRAIN.ts"))
 	X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TEST.ts"))
 
 	# not sure if needed!
-	X_train , X_test = np.stack(X_train), np.stack(X_test)
+	#X_train , X_test = np.stack(X_train), np.stack(X_test)
 
 	y_train, y_test,labels_map = to_numeric_labels(y_train, y_test)
+
+	# data structure for dataset
+	data = {
+		'train_set': 		{},
+		'test_set': 		{},
+		'name' : 			current_dataset,
+		'n_channels' : 		X_train.shape[1],
+		'n_time_points_chunks':	20,	# hard coded!
+	}
 
 	# setting train, test sets and label map
 	data['train_set']['X'] = X_train;	data['test_set']['X'] = X_test
 	data['train_set']['y'] = y_train;	data['test_set']['y'] = y_test
 	data['labels_map'] = labels_map
 
-	#print("\nloaded dataset",current_dataset, ":\ntrain set shape is",X_train.shape,
-	#	  ",test set shape is " ,X_test.shape  )
+
 
 	return data
 

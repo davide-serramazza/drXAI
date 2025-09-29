@@ -25,7 +25,7 @@ def main(args):
 
 	# load dataset
 	all_accuracies = {}
-	for current_dataset in sorted(os.listdir(args.dataset_dir ) )[10:]:
+	for current_dataset in sorted(os.listdir(args.dataset_dir ) ):
 
 		# load current dataset
 		print("loading ", current_dataset,"...",end="\t")
@@ -45,11 +45,13 @@ def main(args):
 			)
 
 		# train models on selected dataset versions
-		current_accuracies = get_accuracies(data,saved_models_path, all_selections, model_names,batch_sizes,channel_selection)
-		#pprint(current_accuracies ,indent=4)
+
+		current_accuracies = get_accuracies(data,saved_models_path, all_selections, model_names,batch_sizes,
+                                          n_orig_features=XAI_results['n_features'], channel_selection=channel_selection)
 		all_accuracies[current_dataset] = current_accuracies
 
 		np.save( result_path ,all_accuracies)
+
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()

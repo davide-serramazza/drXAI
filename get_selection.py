@@ -33,7 +33,10 @@ def main(args):
 		print("\n\n current loaded dataset is....", current_dataset)
 
 		# create an entry in result's data structure, initialized with 'symbolic label -> numeric label' map
-		results = {'labels_map' : data['labels_map']}
+		results = {
+            'labels_map' : data['labels_map'],
+            'n_features' : data['n_channels'] if channel_selection else data['n_time_points_chunks']
+        }
 
 		for model_name,batch_size in zip(model_names,batch_sizes):
 			trainer = trainer_dict[model_name]

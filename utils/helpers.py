@@ -21,10 +21,11 @@ def set_seed(seed: int = 42):
 		torch.cuda.manual_seed(seed)
 		torch.cuda.manual_seed_all(seed)
 
-#TODO check at this accuracies argument
+
 def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  info):
 
-	key2find = 'selected_channels_intersection' if channel_sel else 'selected_timePoints_intersection'
+	key2find = 'selected_channels_' if channel_sel else 'selected_timePoints_'
+	main_key2find = key2find+'intersection'
 
 	for k in saliency_map_dict.keys():
 		if k=='labels_map':
@@ -38,7 +39,7 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 				# select only if in required classifiers!
 				selection_dict[model_name] = { 'initial accuracy' :  init_acc}
 
-		elif k==key2find:
+		elif k==main_key2find:
 			#k_name = k.replace(key2find,'')
 			model_name, explainer = info.split("_")[1] , "_".join( info.split("_")[2:] )
 			#for model in selection_dict.keys():
@@ -47,11 +48,11 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 
 				# TODO separate explainer from background?
 				# TODO extract a function here?
-				if saliency_map_dict[k]!=[]:
-					selection =saliency_map_dict[k]
+				if saliency_map_dict[main_key2find]!=[]:
+					selection =saliency_map_dict[main_key2find]
 				else:
 					print(model_name,explainer,"intersection is empty!", end='!\t\t')
-					k1 = 'selected_channels_absoluteFirst'  ; k2 = 'selected_channels_averageFirst'
+					k1 = key2find+ 'absoluteFirst'  ; k2 = key2find + 'averageFirst'
 					selection = saliency_map_dict[k1] if saliency_map_dict[k1]!=None else saliency_map_dict[k2]
 					print(k1,"as alternative")
 
@@ -71,8 +72,6 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 
 def extraction_method(channel_selection , time_point_selection):
 
-	#TODO to check!!
-	# only channel selection or time points can be selected
 	assert channel_selection != time_point_selection, "Only channel selection or time points can be selected"
 	print("performing channel selection") if channel_selection else print("performing time point selection")
 	return channel_selection

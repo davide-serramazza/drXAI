@@ -3,11 +3,12 @@ import timeit
 import os
 import torch
 from copy import deepcopy
+from scipy.stats import hmean
 
 from  .helpers import extract_timePoints
 from utils.trainers import trainer_dict
 
-def get_accuracies(original_data,save_models_path, selections,clf_names, batch_sizes,channel_selection=True):
+def get_accuracies(original_data,save_models_path, selections,clf_names, batch_sizes,n_orig_features,channel_selection=True):
 
 	for clf_name, batch_size in  zip(clf_names,batch_sizes):
 		trainer = trainer_dict[clf_name]
@@ -24,7 +25,7 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
 
 			# accuracies vector
 			selection = selection_dict['selection']
-			current_dataset_accs = np.zeros(shape=(5,))
+			current_dataset_accs, current_dataset_hmeans = np.zeros(shape=(5,)),  np.zeros(shape=(5,))
 
 			# get current selected channels
 			data  = deepcopy(original_data)
@@ -42,7 +43,14 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
 				star_time = timeit.default_timer()
 				current_accuracy , model = trainer(dataset=data, device=device, batch_size=batch_size)
 				training_time = timeit.default_timer() - star_time
+
+				# saving current accuracy
 				current_dataset_accs[i] = current_accuracy
+				
+				# computing and saving current hmean
+				data_saved = 1 - len(selection)/n_orig_features
+				current_dataset_hmeans[i] = hmean([data_saved,current_accuracy])
+
 
 				# save best model
 				if max(current_dataset_accs)==current_accuracy:
@@ -52,10 +60,17 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
 			# extrac mean, std deviation and best accuracy
 			selections[clf_name][name]	 = 	{
 				'training_time' : training_time,
-				'mean' : np.mean(current_dataset_accs).item(),
-				'std' : np.std(current_dataset_accs).item() ,
-				'best' :  np.max(current_dataset_accs).item(),
-				'selection' : selection
+                'selection' : selection,
+                'accs' : {
+                    'mean' : np.mean(current_dataset_accs).item(),
+                    'std' : np.std(current_dataset_accs).item() ,
+                    'best' :  np.max(current_dataset_accs).item(),
+                },
+                'hmeans' : {
+                    'mean' : np.mean(current_dataset_hmeans).item(),
+                    'std' : np.std(current_dataset_hmeans).item() ,
+                    'best' :  np.max(current_dataset_hmeans).item(),
+                }
 			}
 
 		print(clf_name,"evaluation over!")
