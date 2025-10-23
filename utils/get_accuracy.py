@@ -72,7 +72,7 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
                     'best' :  np.max(current_dataset_hmeans).item(),
                 }
 			}
-
+			print(clf_name, name, "evaluation computed!")
 		print(clf_name,"evaluation over!")
 
 	return selections

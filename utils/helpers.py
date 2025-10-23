@@ -2,6 +2,7 @@ import numpy as np
 import random
 import torch
 import argparse
+import timeit
 
 from .trainers import trainer_dict
 
@@ -67,6 +68,19 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 
 	return selection_dict
 
+def elapsed_time(f,args):
+	"""
+	record the running time of a function f
+	:param f: function to be executed
+	:param args: arguments to be passed to f
+	:return: f's returned values, running time
+	"""
+
+	start_time = timeit.default_timer()
+	returned_vales = f(*args)
+	elapsed_time = timeit.default_timer() - start_time
+
+	return *returned_vales, elapsed_time
 
 ##################### functions to check arguments #####################
 
