@@ -81,5 +81,9 @@ def build_train_ConvTran(train_loader,val_loader, dev_dataset, device, save_path
 
 	# actually train the final model here
 	_, final_model = train_runner(final_default_hyperparams, final_model, final_trainer, save_path, verbose=verbose)
+	# get train set predictions on a NON shuffled dataloader and evaluate accuracy on test set
 
-	return final_model, final_default_hyperparams
+	dev_loader = DataLoader(dataset=dev_dataset, batch_size=trainer.dataloader.batch_size, shuffle=True, pin_memory=True)
+	y_train_pred = final_model.predict(dev_loader)
+
+	return final_model, y_train_pred, final_default_hyperparams

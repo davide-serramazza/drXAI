@@ -8,7 +8,7 @@ from aeon.datasets import load_from_ts_file
 from models.ConvTran.utils import dataset_class
 
 
-def sample_instances(X , y, n):
+def sample_instances(X , y_true, y_pred, n):
 	"""
 	sample instances from dataset (test set
 	:param X:	samples
@@ -17,8 +17,14 @@ def sample_instances(X , y, n):
 	:return:
 	"""
 
+	# if n==-1 don't need to sample, so set n to number of total samples in training set
+	n = X.shape[0] if n==-1 else n
+
+	# set y elements as either original idx (all >0 ) or -1 if misclassified
+	y = np.array( [ y_true[i] if y_true[i] == y_pred[i] else -1 for i in range(y_true.shape[0])] )
+
 	# check the unique values in labels set
-	classes_idx = [np.where(y==id)[0] for id in np.unique(y)]
+	classes_idx = [np.where(y==class_id)[0] for class_id in np.unique(y_true)]
 
 	X_sampled = []
 	y_sampled = []
@@ -30,6 +36,7 @@ def sample_instances(X , y, n):
 		#selected = np.random.randint(low=0, high=n_instances,size=n) if n_instances>n else np.array([i for i in range(n_instances)])
 		current_n = min(n, len(current_class_idx))
 		selected = np.random.permutation(current_class_idx)[:current_n]
+
 
 		sample_idx.append(selected)
 		X_sampled.append(X[selected]) ; y_sampled.append(y[selected])

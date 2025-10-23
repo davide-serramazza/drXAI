@@ -22,9 +22,12 @@ def trainScore_hydra_gpu( dataset , device, batch_size ):
     model = RidgeClassifier(transform=transform, device=device)
     model.fit(data_train, num_classes=n_classes)
 
+    # get train set predictions on a NON shuffled dataloader and evaluate accuracy on test set
+    data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=False)
+    y_train_pred = model.predict(data_train)
     error_test_set  =   model.score(data_test)
 
-    return   (1 - error_test_set.cpu().numpy().item()), model
+    return  y_train_pred, (1 - error_test_set.cpu().numpy().item()), model
 
 
 def train_Minirocket_ridge_GPU(  dataset , device, batch_size ):
@@ -43,9 +46,12 @@ def train_Minirocket_ridge_GPU(  dataset , device, batch_size ):
     model = MyMiniRocket(n_channels=n_channels,seq_len=seq_len,n_classes=n_classes, device=device)
     model.train(data_train)
 
+    # get train set predictions on a NON shuffled dataloader and evaluate accuracy on test set
+    data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=False)
+    y_train_pred = model.predict(data_train)
     acc_test_set = model.score(data_test)
 
-    return acc_test_set.item(), model
+    return y_train_pred, acc_test_set.item(), model
 
 
 
@@ -54,13 +60,14 @@ def train_ConvTran( dataset , device, batch_size, verbose=False ):
     train_loader, val_loader, dev_dataset,test_loader = load_data_ConvTran(
         dataset, batch_size=batch_size)
 
-    convTran, hyperParams = build_train_ConvTran(train_loader, val_loader, dev_dataset, device=device,
+    convTran, y_train_pred, hyperParams = build_train_ConvTran(train_loader, val_loader, dev_dataset, device=device,
                                                  save_path=None,verbose=verbose)
     convTran.eval()
 
+    # get train set predictions and evaluate accuracy on test set
     accuracy_testSet = convTran.score(test_loader)
 
-    return accuracy_testSet.item(), convTran
+    return accuracy_testSet.item(),y_train_pred, convTran
 
 trainer_dict = {
     'hydra' 		:	trainScore_hydra_gpu  ,
