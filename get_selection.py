@@ -20,6 +20,7 @@ def main(args):
 	model_names, batch_sizes = extract_classifiers_batchSizes(args.classifiers_batchSizes)
 
 	channel_selection = extraction_method(args.channel_selection, args.time_point_selection)
+	n_instancesAClass = args.n_samples
 
 	# get device, set random seed and instantiate result data structure
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

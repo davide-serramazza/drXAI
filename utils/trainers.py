@@ -67,7 +67,7 @@ def train_ConvTran( dataset , device, batch_size, verbose=False ):
     # get train set predictions and evaluate accuracy on test set
     accuracy_testSet = convTran.score(test_loader)
 
-    return accuracy_testSet.item(),y_train_pred, convTran
+    return y_train_pred, accuracy_testSet.item(), convTran
 
 trainer_dict = {
     'hydra' 		:	trainScore_hydra_gpu  ,
