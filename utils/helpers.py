@@ -4,8 +4,6 @@ import torch
 import argparse
 import timeit
 
-from .trainers import trainer_dict
-
 def extract_timePoints( data, selection):
 	new_data = []
 	for intervals in sorted(selection):
@@ -68,6 +66,7 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 
 	return selection_dict
 
+
 def elapsed_time(f,args):
 	"""
 	record the running time of a function f
@@ -90,6 +89,7 @@ def extraction_method(channel_selection , time_point_selection):
 	print("performing channel selection") if channel_selection else print("performing time point selection")
 	return channel_selection
 
+classifiers_used = ['hydra','miniRocket','ConvTran']
 
 def extract_classifiers_batchSizes(models_batchSizes: list[str]) -> tuple[list[str], list[int]]:
 	"""
@@ -105,7 +105,7 @@ def extract_classifiers_batchSizes(models_batchSizes: list[str]) -> tuple[list[s
 
 	# check that provided classifiers are in the ones included in the study
 	for model_name in model_names:
-		assert model_name in trainer_dict.keys(), "Classifier name not recognized"
+		assert model_name in classifiers_used, "Classifier name not recognized"
 
 	return model_names, batch_sizes
 

@@ -36,7 +36,7 @@ class MiniRocketFeatures(nn.Module):
 
     kernel_size, num_kernels, fitting = 9, 84, False
 
-    def __init__(self, c_in, seq_len, num_features=10_000, max_dilations_per_kernel=32, random_state=None, device="cpu"):
+    def __init__(self, seq_len, c_in, num_features=10_000, max_dilations_per_kernel=32, random_state=None):
         super(MiniRocketFeatures, self).__init__()
         self.c_in, self.seq_len = c_in, seq_len
         self.num_features = num_features // self.num_kernels * self.num_kernels
@@ -61,7 +61,7 @@ class MiniRocketFeatures(nn.Module):
         self.register_buffer('prefit', torch.BoolTensor([False]))
 
         self.num_features = 9996
-        self.to(device)
+
 
     def fit(self, X, chunksize=None):
         num_samples = X.shape[0]

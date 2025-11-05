@@ -1,76 +1,104 @@
+from copy import deepcopy
+from torch.cuda import  empty_cache as empty_gpu_cache
+
+from models.tsai.MINIROCKET_Pytorch import MiniRocketFeatures
 from models.aaltd2024.code.hydra_gpu import HydraMultivariateGPU
 from models.aaltd2024.code.ridge import RidgeClassifier
 from models.aaltd2024.code.utils import *
-from models.MyMiniRocket import MyMiniRocket
-from utils.data_utils import load_data_ConvTran
 from models.convTran import build_train_ConvTran
+from models.convTran import default_hyperparams as ConvTran_default_hyperparams
+from utils.data_utils import load_data_ConvTran, dataloader_hydra_miniRocket
 
-def trainScore_hydra_gpu( dataset , device, batch_size ):
 
-    # get different dataset parts
-    X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
-    X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
-
-    data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=True)
-    data_test = Dataset(X_test, y_test, batch_size=batch_size, shuffle=False)
+def _trainer_hydra_miniRocket( data_train, device, model_f):
+    """
+    function to train both hydra and miniRocket models
+    :param data_train:  DataLoader for training set
+    :param device:      device to train on
+    :param model_f:     which model to use to transform the dataset
+    :return:            trained model
+    """
 
     # extract TS info
-    _ , n_channels, length = X_train.shape
-    n_classes = np.unique(y_train).shape[0]
+    _ , n_channels, length = data_train.shape
+    n_classes =  data_train.classes.shape[0]
 
-    transform = HydraMultivariateGPU(input_length=length, num_channels=n_channels).to(device)
+    # apply the specified transform function i.e.either 'HydraMultivariateGPU' or 'MiniRocketFeatures'
+    transform = model_f(length,n_channels).to(device)
+
+    # train GPU's RidgeClassifier
     model = RidgeClassifier(transform=transform, device=device)
     model.fit(data_train, num_classes=n_classes)
 
-    # get train set predictions on a NON shuffled dataloader and evaluate accuracy on test set
-    data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=False)
-    y_train_pred = model.predict(data_train)
-    error_test_set  =   model.score(data_test)
-
-    return  y_train_pred, (1 - error_test_set.cpu().numpy().item()), model
+    return model
 
 
-def train_Minirocket_ridge_GPU(  dataset , device, batch_size ):
+def _trainer_ConvTran( train_loader,val_loader,dev_loader, device ):
+    """
+    function to train ConvTran model
+    :param train_loader:    DataLoader for training set (the remaining part after train-val split)
+    :param val_loader:      DataLoader for validation set
+    :param dev_loader:      DataLoader for development set i.e. the whole training set
+    :param device:          device to train on
+    :return:                trained model
+    """
 
-    # get different dataset parts
-    X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
-    X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
+    # validation stage
+    best_n_epochs, _ =  build_train_ConvTran(train_loader,
+                                    val_loader=val_loader,device=device,hyperparams=ConvTran_default_hyperparams)
+    empty_gpu_cache()
 
-    data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=True)
-    data_test = Dataset(X_test, y_test, batch_size=batch_size, shuffle=False)
+    # increase the emb size (and consequently the number of heads) by 25% as the training data are
+    # increasing by the same amount
+    final_hyperparams = deepcopy(ConvTran_default_hyperparams)
+    final_hyperparams['epochs'] = best_n_epochs
+    final_hyperparams['emb_size'] = np.ceil(ConvTran_default_hyperparams['emb_size'] / 0.75).astype(int)  # TODO hard coded
+    final_hyperparams['num_heads'] = np.ceil(ConvTran_default_hyperparams['num_heads'] / 0.75).astype(int)
 
-    # extract TS info
-    n_samples , n_channels , seq_len = X_train.shape
-    n_classes = np.unique(y_train).shape[0]
+    # train the final model WITHOUT any validation set!
+    _ , model = build_train_ConvTran(dev_loader,val_loader=None, device=device,hyperparams=final_hyperparams)
 
-    model = MyMiniRocket(n_channels=n_channels,seq_len=seq_len,n_classes=n_classes, device=device)
-    model.train(data_train)
-
-    # get train set predictions on a NON shuffled dataloader and evaluate accuracy on test set
-    data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=False)
-    y_train_pred = model.predict(data_train)
-    acc_test_set = model.score(data_test)
-
-    return y_train_pred, acc_test_set.item(), model
+    return model
 
 
 
-def train_ConvTran( dataset , device, batch_size, verbose=False ):
+def train(dataset, device, batch_size, model_name, return_train_predictions=False, verbose=False):
+    """
+    wrapper function to train each model included in the study
+    :param dataset:                     current dataset
+    :param device:                      device to train on
+    :param batch_size:                  batch size to be used during training
+    :param model_name:                  name of the model i.e. 'miniRocket' or 'hydra' or 'ConvTran'
+    :param return_train_predictions:    whether to return train set predictions
+    :param verbose:                     whether to have verbose output (only for ConvTran)
+    :return:                            accuracy model and optionally train set predictions
+    """
 
-    train_loader, val_loader, dev_dataset,test_loader = load_data_ConvTran(
-        dataset, batch_size=batch_size)
+    # set functions (DataLoader, trainer, score) according to the current model
 
-    convTran, y_train_pred, hyperParams = build_train_ConvTran(train_loader, val_loader, dev_dataset, device=device,
-                                                 save_path=None,verbose=verbose)
-    convTran.eval()
+    dataloader_f = dataloader_hydra_miniRocket if model_name in ['hydra','miniRocket'] else load_data_ConvTran
 
-    # get train set predictions and evaluate accuracy on test set
-    accuracy_testSet = convTran.score(test_loader)
+    trainer_f = (lambda data, device: _trainer_hydra_miniRocket(data,device,HydraMultivariateGPU)) if model_name=='hydra' else \
+        (lambda data, device: _trainer_hydra_miniRocket(data,device,MiniRocketFeatures)) if model_name=='miniRocket'\
+            else _trainer_ConvTran
 
-    return y_train_pred, accuracy_testSet.item(), convTran
+    score_f = (lambda model, data :(1- model.score(data).cpu().numpy().item()) ) if model_name in ['hydra','miniRocket'] \
+        else (lambda model, data: model.eval().score(data))
 
-trainer_dict = {
-    'hydra' 		:	trainScore_hydra_gpu  ,
-    'miniRocket'	:	train_Minirocket_ridge_GPU ,
-    'ConvTran'		:	train_ConvTran
-}
+    # use previously defined functions
+
+    data_loader = dataloader_f(dataset, batch_size)
+
+    model = trainer_f(*data_loader[:-1], device)
+
+    accuracy = score_f( model, data_loader[-1] )
+
+    to_return = accuracy, model
+
+    if return_train_predictions:
+        # if required, get train set predictions on a NON shuffled dataloader
+        train_data = dataloader_f(dataset, batch_size,only_train=True)
+        train_predictions = model.predict(train_data)
+        to_return = (*to_return, train_predictions)
+
+    return to_return

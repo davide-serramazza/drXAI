@@ -1,11 +1,6 @@
-import timeit
-import argparse
-
-import numpy as np
-
 from utils.helpers import *
 from utils.data_utils import *
-from utils.trainers import *
+from utils.trainers import train
 from drXAI import drXAI
 
 def main(args):
@@ -35,7 +30,6 @@ def main(args):
 
 		print("\n\n current loaded dataset is....", current_dataset)
 
-
 		# create an entry in result's data structure, initialized with 'symbolic label -> numeric label' map
 		results = {
             'labels_map' : data['labels_map'],
@@ -44,18 +38,17 @@ def main(args):
 
 		for model_name,batch_size in zip(model_names,batch_sizes):
 
-			# train and save model
-			trainer = trainer_dict[model_name]
-			y_train_pred, current_accuracy , model, training_time = elapsed_time(
-				trainer,(data,  device, batch_size) )
+			current_accuracy , model,y_train_pred, training_time = elapsed_time(
+				train,(data,  device, batch_size, model_name, True) )
 
+			print(model_name,"training over! Accuracy is: ",current_accuracy)
 			file_name = "_".join((current_dataset,model_name,"allChannel"))+".pth"
 			torch.save(model, os.path.join(saved_models_dir,file_name))
 
-			# save stats in the results data structure
+			# save stats in the result data structure
 
 			results[model_name] = {
-				"training_time" : training_time,
+				'training_time' : training_time,
 				'accuracy' : current_accuracy,
 			}
 
@@ -63,11 +56,11 @@ def main(args):
 			X2explain , labels, idx =  sample_instances(
 						data['train_set']['X'] , data['train_set']['y'], y_train_pred, n_instancesAClass)
 
-			results['sampled_idx'] =  idx
+			results[model_name]['sampled_idx'] =  idx
 
 			################################ explain ###########################################
 
-			backgrounds2use = ["zeros","SMOTE","Proto"]	#hardcoded backgrounds to be used
+			backgrounds2use = ["SMOTE","Proto"] #,"zeros"]	#hardcoded backgrounds to be used
 
 			for b_name in backgrounds2use:
 
@@ -82,12 +75,12 @@ def main(args):
 				for exp_name in explainers2use:
 					drxai = drXAI(channel_selection=channel_selection, classifier=model,dataset_X=X2explain,
 								  dataset_y=labels, explainer_name=exp_name, background_name=b_name,
-								  explainer_kwargs={'batch_size':batch_size})
+								  explainer_kwargs={'batch_size':batch_size}
+								  )
 					selections, attribution,exp_time = drxai.get_selection()
 
 					# save saliency_maps, selections and other info into data structure
 					results[model_name][b_name][exp_name] = {
-						'sampling_idx' : idx,
 						key_prefix+'averageFirst' : selections[0],
 						key_prefix+'absoluteFirst' : selections[1],
 						key_prefix+'intersection' : list(
