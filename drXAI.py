@@ -9,9 +9,10 @@ from explanations import extract_selection_avgFirst, extract_selection_absFirst
 class drXAI:
 
 	def __init__(self,   channel_selection : bool, classifier,dataset_X: np.ndarray, dataset_y : np.ndarray,
-				 explainer_name : str , background_name : str , explainer_kwargs):
+				 explainer_name : str , background_name : str , explainer_kwargs, X_train = None , y_train = None ):
 
 		# Check argument values
+		# asserts also for X_train and y_train?
 		assert len(dataset_X.shape)==3
 		assert len(dataset_y.shape)==1
 		assert explainer_name in ["WindowSHAP", "Feature_Ablation", "SHAP"]
@@ -26,12 +27,19 @@ class drXAI:
 
 
 		# instantiate the requested background
+
+		if X_train is None:
+			bkg_set_X , bkg_set_y = dataset_X,dataset_y
+		else:
+			bkg_set_X , bkg_set_y = X_train,y_train
+
+
 		if background_name=="zeros":
 			self.__background= dataset_X[0:1]*0
 		elif background_name=="SMOTE":
-			self.__background= smote_avg(dataset_X,dataset_y)
+			self.__background= smote_avg(bkg_set_X,bkg_set_y)
 		elif background_name=="Proto":
-			self.__background= class_prototypes_avg(dataset_X,dataset_y)
+			self.__background= class_prototypes_avg(bkg_set_X,bkg_set_y)
 
 		# instantiate the requested explainer
 		if explainer_name=="WindowSHAP":
