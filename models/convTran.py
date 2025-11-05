@@ -1,9 +1,5 @@
 import logging
 import numpy as np
-from copy import deepcopy
-
-from torch.cuda import  empty_cache as empty_gpu_cache
-from torch.utils.data import DataLoader
 
 from .ConvTran.Models.model import model_factory, count_parameters
 from .ConvTran.Models.optimizers import get_optimizer
@@ -21,6 +17,15 @@ default_hyperparams = {
 }
 
 def build_ConvTran_model(config,shape, n_labels, device="cuda", verbose=False):
+	"""
+	function to build the ConvTran model
+	:param config: 		dict containing the hyperparameters
+	:param shape: 		data shape
+	:param n_labels: 	number of labels (classes)
+	:param device: 		device to be used
+	:param verbose: 	whether verbose output is required
+	:return: 			UNtrained model
+	"""
 	if verbose:
 		logger.info("Creating model ...")
 	config['Data_shape'] = shape
@@ -39,51 +44,36 @@ def build_ConvTran_model(config,shape, n_labels, device="cuda", verbose=False):
 	return model
 
 
-def build_train_ConvTran(train_loader,val_loader, dev_dataset, device, save_path=None, verbose=False):
-	#tensorboard_writer = SummaryWriter('summary')
-	# get basic info and build the initial model
+
+def build_train_ConvTran(train_loader, device, hyperparams,val_loader=None, save_path=None, verbose=False):
+	"""
+	function to build and train the ConvTran model
+	:param train_loader: 	DataLoader for training
+	:param device: 			device to train on
+	:param hyperparams: 	dict of hyperparameters to be used during training
+	:param val_loader: 		DataLoader for validation
+	:param save_path: 		path where to save the model
+	:param verbose: 		whether to have verbose output
+	:return: 				epoch number where best val accuracy was obtained, model
+	"""
+
 	shape, n_labels = train_loader.dataset.feature.shape, np.unique(train_loader.dataset.labels).shape[0]
 
-	model = build_ConvTran_model(default_hyperparams, shape , n_labels, device=device, verbose=verbose)
+	model = build_ConvTran_model(hyperparams, shape , n_labels, device=device, verbose=verbose)
 	# ---------------------------------------------- Validating The Model ------------------------------------
 	if verbose:
 		logger.info('Starting training...')
 
 	# once get the SupervisedTrainer classes we can now train the model
-	trainer = SupervisedTrainer(model, train_loader, device, default_hyperparams['loss_module'],
-			default_hyperparams['optimizer'], l2_reg=0,print_interval=default_hyperparams['print_interval'],
-				console=default_hyperparams['console'],print_conf_mat=False)
+	trainer = SupervisedTrainer(model, train_loader, device, hyperparams['loss_module'],
+								hyperparams['optimizer'], l2_reg=0,print_interval=hyperparams['print_interval'],
+								console=hyperparams['console'],print_conf_mat=False)
 
-	val_evaluator = SupervisedTrainer(model, val_loader, device, default_hyperparams['loss_module'],
-			print_interval=default_hyperparams['print_interval'], console=default_hyperparams['console'],
-									  print_conf_mat=False)
+	val_evaluator = SupervisedTrainer(model, val_loader, device, hyperparams['loss_module'],
+									  print_interval=hyperparams['print_interval'], console=hyperparams['console'],
+		print_conf_mat=False) if val_loader is not None else None
 
-	best_n_epochs, model = train_runner(default_hyperparams, model, trainer, save_path, val_evaluator=val_evaluator,
+	best_n_epochs, model = train_runner(hyperparams, model, trainer, save_path, val_evaluator=val_evaluator,
 										verbose=verbose)
 
-	# clean what used for validation
-	del train_loader  ; del val_loader; del model
-	empty_gpu_cache()
-	# ---------------------------------------------- Final Training ------------------------------------
-	# update hyper-parameters as the training set is now bigger
-	final_default_hyperparams = deepcopy(default_hyperparams)
-	final_default_hyperparams['epochs'] = best_n_epochs
-	final_default_hyperparams['emb_size'] = np.ceil(default_hyperparams['emb_size'] / 0.75).astype(int)  # TODO hard coded
-	final_default_hyperparams['num_heads'] = np.ceil(default_hyperparams['num_heads'] / 0.75).astype(int)
-
-	# get final model, final trainer
-	shape = dev_dataset.feature.shape
-	final_model = build_ConvTran_model(final_default_hyperparams, shape, n_labels)
-	dev_loader = DataLoader(dataset=dev_dataset, batch_size=trainer.dataloader.batch_size, shuffle=True, pin_memory=True)
-	final_trainer = SupervisedTrainer(final_model, dev_loader, device, final_default_hyperparams['loss_module'], final_default_hyperparams['optimizer'],
-			l2_reg=0, print_interval=final_default_hyperparams['print_interval'], console=final_default_hyperparams['console'],
-									  print_conf_mat=False)
-
-	# actually train the final model here
-	_, final_model = train_runner(final_default_hyperparams, final_model, final_trainer, save_path, verbose=verbose)
-	# get train set predictions on a NON shuffled dataloader and evaluate accuracy on test set
-
-	dev_loader = DataLoader(dataset=dev_dataset, batch_size=trainer.dataloader.batch_size, shuffle=False, pin_memory=True)
-	y_train_pred = final_model.predict(dev_loader)
-
-	return final_model, y_train_pred, final_default_hyperparams
+	return best_n_epochs, model
