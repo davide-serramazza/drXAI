@@ -6,7 +6,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 from torch.utils.data import DataLoader
 from aeon.datasets import load_from_ts_file
 from models.ConvTran.utils import dataset_class
-
+from models.aaltd2024.code.utils import Dataset
 
 def sample_instances(X , y_true, y_pred, n):
 	"""
@@ -17,13 +17,14 @@ def sample_instances(X , y_true, y_pred, n):
 	:return:
 	"""
 
-	# if n==-1 don't need to sample, so set n to number of total samples in training set
+	# if n==-1 don't need to sample, so set n to number of total samples in the training set
 	n = X.shape[0] if n==-1 else n
 
 	# set y elements as either original idx (all >0 ) or -1 if misclassified
 	y = np.array( [ y_true[i] if y_true[i] == y_pred[i] else -1 for i in range(y_true.shape[0])] )
 
-	# check the unique values in labels set
+	# check the unique values in labels set. Misclassified instances are
+	# excluded since the corresponding entries were set to -1
 	classes_idx = [np.where(y==class_id)[0] for class_id in np.unique(y_true)]
 
 	X_sampled = []
@@ -51,18 +52,12 @@ def load_datasets(dataset_dir, current_dataset ):
 	X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TRAIN.ts"))
 	X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TEST.ts"))
 
-	# not sure if needed!
-	#X_train , X_test = np.stack(X_train), np.stack(X_test)
 
 	y_train, y_test,labels_map = to_numeric_labels(y_train, y_test)
 
 	# data structure for dataset
-	data = {
-		'train_set': 		{},
-		'test_set': 		{},
-		'name' : 			current_dataset,
-		'n_channels' : 		X_train.shape[1],
-		'n_time_points_chunks':	20,	# hard coded!
+	data = {'train_set': {}, 'test_set': {}, 'name': current_dataset, 'n_channels': X_train.shape[1],
+            'n_time_points_chunks': 20	# hard coded!
 	}
 
 	# setting train, test sets and label map
@@ -87,29 +82,37 @@ def to_numeric_labels(y_train, y_test):
 
 ################################ ConvTran functions #######################################
 
-def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=32):
+
+def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=32, only_train=False):
 
 	# get different dataset parts
 	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
-	X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
 
-	# assuming equal length data
-	_ , n_channels , seq_len = X_train.shape
+	if not only_train:
+		X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
 
-	train_data, train_label, _, val_data, val_label, _ = split_dataset(X_train, y_train,val_ratio)
+		# assuming equal length data
+		_ , n_channels , seq_len = X_train.shape
 
-	# creating loaders
-	train_dataset = dataset_class(train_data, train_label)
-	val_dataset = dataset_class(val_data, val_label)
-	dev_dataset = dataset_class( X_train, y_train)
-	test_dataset = dataset_class(X_test,y_test)
+		train_data, train_label, _, val_data, val_label, _ = split_dataset(X_train, y_train,val_ratio)
 
-	train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
-	val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
-	test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
 
-	return train_loader, val_loader, dev_dataset, test_loader
+		train_loader = DataLoader(dataset=dataset_class(train_data, train_label)
+								  , batch_size=batch_size, shuffle=True, pin_memory=True)
+		val_loader = DataLoader(dataset= dataset_class(val_data, val_label)
+								, batch_size=batch_size, shuffle=False, pin_memory=True)
+		dev_loader = DataLoader(dataset=dataset_class(X_train, y_train)
+								, batch_size=batch_size, shuffle=True, pin_memory=True)
+		test_loader = DataLoader(dataset=dataset_class(X_test,y_test)
+								 , batch_size=batch_size, shuffle=False, pin_memory=True)
 
+		to_return =  train_loader, val_loader, dev_loader, test_loader
+
+	else:
+		train_dataset = dataset_class(X_train, y_train)
+		to_return = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
+
+	return to_return
 
 
 def split_dataset(data, label, validation_ratio, random_state = None):
@@ -124,3 +127,20 @@ def split_dataset(data, label, validation_ratio, random_state = None):
 	return train_data, train_label, train_indices[0] , val_data, val_label, val_indices[0]
 
 
+################################ DataLoader for hydra and MiniRocket #######################################
+
+def dataloader_hydra_miniRocket(dataset, batch_size,only_train=False):
+
+	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
+
+	if not only_train:
+		X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
+
+	data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=False) if only_train else \
+		Dataset(X_train, y_train, batch_size=batch_size, shuffle=True)
+
+	# if only_train==False, return also the test set's DataLoader
+	to_return = data_train if only_train else \
+		(data_train,  Dataset(X_test, y_test, batch_size=batch_size, shuffle=False))
+
+	return to_return
