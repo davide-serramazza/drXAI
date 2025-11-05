@@ -41,7 +41,7 @@ def main(args):
 		elbow_selections = get_elbow_selections(current_dataset,all_elbow_selections) if channel_selection else {}
 
 		all_selections = get_computed_AI_selections(saliency_map_dict=XAI_results, channel_sel=channel_selection,
-			selection_dict={ k:elbow_selections for k in model_names },info=""
+			selection_dict={ k: {} for k in model_names },info=""  #{ k:elbow_selections for k in model_names },info=""
 			)
 
 		# train models on selected dataset versions
@@ -61,6 +61,7 @@ if __name__ == '__main__':
 	parser.add_argument("result_file", type=str, help="file where to store new accuracies")
 	parser.add_argument("--classifiers_batchSizes", nargs='+',help="classifier name is either hydra,"
 																   "miniRocket or ConvTran")
+	# TODO change time vs channel selection based on elbow?
 	parser.add_argument("--elbow_selections", type=str,  nargs='?',default=None, help="optional argument."
 		"file path where elbow selections are saved, implicitly defining whether channel selection (provided) """
 			"or time point selection(not provided)")
