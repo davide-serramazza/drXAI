@@ -21,6 +21,7 @@ def main(args):
 	print("performing channel selection") if channel_selection else print("performing time point selection")
 
 	# otherwise load elbow selection, saliency maps and initial accuracies
+	# TODO get totally rid of elbow!
 	all_elbow_selections = np.load(elbow_selections_path, allow_pickle=True).item() if channel_selection else None
 
 	# load dataset

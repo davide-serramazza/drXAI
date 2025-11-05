@@ -62,7 +62,7 @@ def _trainer_ConvTran( train_loader,val_loader,dev_loader, device ):
 
 
 
-def train(dataset, device, batch_size, model_name, return_train_predictions=False, verbose=False):
+def train(dataset, device, batch_size, model_name, return_train_predictions=True, verbose=False):
     """
     wrapper function to train each model included in the study
     :param dataset:                     current dataset

@@ -6,12 +6,11 @@ from copy import deepcopy
 from scipy.stats import hmean
 
 from  .helpers import extract_timePoints
-from utils.trainers import trainer_dict
+from utils.trainers import train
 
 def get_accuracies(original_data,save_models_path, selections,clf_names, batch_sizes,n_orig_features,channel_selection=True):
 
 	for clf_name, batch_size in  zip(clf_names,batch_sizes):
-		trainer = trainer_dict[clf_name]
 		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 		# get info
@@ -41,7 +40,8 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
 			# train 5 times
 			for i in range(5):
 				star_time = timeit.default_timer()
-				current_accuracy , model = trainer(dataset=data, device=device, batch_size=batch_size)
+				current_accuracy , model  = train(dataset=data, device=device, batch_size=batch_size,
+													model_name=clf_name, return_train_predictions=False)
 				training_time = timeit.default_timer() - star_time
 
 				# saving current accuracy
@@ -72,7 +72,9 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
                     'best' :  np.max(current_dataset_hmeans).item(),
                 }
 			}
+
 			print(clf_name, name, "evaluation computed!")
+
 		print(clf_name,"evaluation over!")
 
 	return selections

@@ -39,7 +39,7 @@ def main(args):
 		for model_name,batch_size in zip(model_names,batch_sizes):
 
 			current_accuracy , model,y_train_pred, training_time = elapsed_time(
-				train,(data,  device, batch_size, model_name, True) )
+				train,(data,  device, batch_size, model_name) )
 
 			print(model_name,"training over! Accuracy is: ",current_accuracy)
 			file_name = "_".join((current_dataset,model_name,"allChannel"))+".pth"
