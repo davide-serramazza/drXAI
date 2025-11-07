@@ -48,12 +48,23 @@ def sample_instances(X , y_true, y_pred, n):
 def load_datasets(dataset_dir, current_dataset ):
 
 	# load data
+	try:
+		# case for UAE/'TimeSeriesClassification.com'
+		X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TRAIN.ts"))
+		X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TEST.ts"))
 
-	X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TRAIN.ts"))
-	X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TEST.ts"))
-
+	except FileNotFoundError:
+		# case for MONSTER datasets
+		X= np.load(os.path.join(dataset_dir, f"{current_dataset}_X.npy"))
+		y = np.load(os.path.join(dataset_dir, f"{current_dataset}_y.npy"))
+		# load the folds
+		folds = [ np.loadtxt(os.path.join(dataset_dir,'test_indices_fold_'+str(i)+".txt")).astype(int) for i in range(5) ]
+		# test set is the last fold,everything else is train set
+		X_test = X[folds[-1]]	; y_test = y[folds[-1]]
+		X_train = np.concatenate( [ X[folds[i]] for i in range(4)] ) ; y_train =  np.concatenate( [ y[folds[i]] for i in range(4)] )
 
 	y_train, y_test,labels_map = to_numeric_labels(y_train, y_test)
+
 
 	# data structure for dataset
 	data = {'train_set': {}, 'test_set': {}, 'name': current_dataset, 'n_channels': X_train.shape[1],
@@ -83,7 +94,7 @@ def to_numeric_labels(y_train, y_test):
 ################################ ConvTran functions #######################################
 
 
-def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=32, only_train=False):
+def load_data_ConvTran(dataset , batch_size=32, val_ratio=0.25, only_train=False):
 
 	# get different dataset parts
 	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
