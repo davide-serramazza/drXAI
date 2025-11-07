@@ -11,9 +11,10 @@ from models.aaltd2024.code.utils import Dataset
 def sample_instances(X , y_true, y_pred, n):
 	"""
 	sample instances from dataset (test set
-	:param X:	samples
-	:param y: 	labels
-	:param n: 	number of instances to sample per class
+	:param X:		samples
+	:param y_true: 	true labels
+	:param y_pred: 	predicted labels
+	:param n: 		number of instances to sample per class among correct classified
 	:return:
 	"""
 
