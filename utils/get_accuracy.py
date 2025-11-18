@@ -1,12 +1,12 @@
 import numpy as np
-import timeit
 import os
 import torch
 from copy import deepcopy
-from scipy.stats import hmean
 
-from  .helpers import extract_timePoints
-from utils.trainers import train
+from scipy.stats import hmean
+from .helpers import elapsed_time, extract_timePoints
+
+from .trainers import train
 
 def get_accuracies(original_data,save_models_path, selections,clf_names, batch_sizes,n_orig_features,channel_selection=True):
 
@@ -37,12 +37,11 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
 
 
 			saved_models_path = os.path.join(save_models_path, "_".join((current_dataset,clf_name,name))+".pth")
-			# train 5 times
+
+			# train 5 times measuring avg and std. dev. of metrics
 			for i in range(5):
-				star_time = timeit.default_timer()
-				current_accuracy , model  = train(dataset=data, device=device, batch_size=batch_size,
-													model_name=clf_name, return_train_predictions=False)
-				training_time = timeit.default_timer() - star_time
+				current_accuracy , model, training_time = elapsed_time(
+					train,(data,  device, batch_size, clf_name, False) )
 
 				# saving current accuracy
 				current_dataset_accs[i] = current_accuracy
@@ -50,7 +49,6 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
 				# computing and saving current hmean
 				data_saved = 1 - len(selection)/n_orig_features
 				current_dataset_hmeans[i] = hmean([data_saved,current_accuracy])
-
 
 				# save best model
 				if max(current_dataset_accs)==current_accuracy:
