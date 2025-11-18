@@ -45,14 +45,13 @@ def build_ConvTran_model(config,shape, n_labels, device="cuda", verbose=False):
 
 
 
-def build_train_ConvTran(train_loader, device, hyperparams,val_loader=None, save_path=None, verbose=False):
+def build_train_ConvTran(train_loader, device, hyperparams,val_loader=None, verbose=False):
 	"""
 	function to build and train the ConvTran model
 	:param train_loader: 	DataLoader for training
 	:param device: 			device to train on
 	:param hyperparams: 	dict of hyperparameters to be used during training
 	:param val_loader: 		DataLoader for validation
-	:param save_path: 		path where to save the model
 	:param verbose: 		whether to have verbose output
 	:return: 				epoch number where best val accuracy was obtained, model
 	"""
@@ -73,7 +72,7 @@ def build_train_ConvTran(train_loader, device, hyperparams,val_loader=None, save
 									  print_interval=hyperparams['print_interval'], console=hyperparams['console'],
 		print_conf_mat=False) if val_loader is not None else None
 
-	best_n_epochs, model = train_runner(hyperparams, model, trainer, save_path, val_evaluator=val_evaluator,
+	best_n_epochs, model = train_runner(hyperparams, model, trainer, val_evaluator=val_evaluator,
 										verbose=verbose)
 
 	return best_n_epochs, model
