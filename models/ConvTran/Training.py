@@ -210,7 +210,7 @@ def validate(val_evaluator, tensorboard_writer, config, best_metrics, best_value
     return aggr_metrics, best_metrics, best_value
 
 
-def train_runner(config, model, trainer, path, val_evaluator=None, verbose=False):
+def train_runner(config, model, trainer, val_evaluator=None, verbose=False):
     """
     train modified in such a way we are using the whole training set
     After a validation (only used for selecting n_epochs) perform training using the whole train set
@@ -252,9 +252,6 @@ def train_runner(config, model, trainer, path, val_evaluator=None, verbose=False
                 print_str += '{}: {:8f} | '.format(k, v)
             if verbose:
                 logger.info(print_str)
-
-    if final_train and path!=None:
-        utils.save_model(path, epoch, model, optimizer)
 
     total_runtime = time.time() - total_start_time
 
