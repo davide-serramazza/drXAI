@@ -36,7 +36,7 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 			init_acc = saliency_map_dict[k]
 			if model_name in selection_dict.keys():
 				# select only if in required classifiers!
-				selection_dict[model_name] = { 'initial accuracy' :  init_acc}
+				selection_dict[model_name]['initial accuracy']  =  init_acc
 
 		elif k==main_key2find:
 			#k_name = k.replace(key2find,'')
