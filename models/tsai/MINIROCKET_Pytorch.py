@@ -69,7 +69,7 @@ class MiniRocketFeatures(nn.Module):
             chunksize = min(num_samples, self.num_dilations * self.num_kernels)
         else:
             chunksize = min(num_samples, chunksize)
-        np.random.seed(self.random_state)
+        #np.random.seed(self.random_state)
         idxs = np.random.choice(num_samples, chunksize, False)
         self.fitting = True
         if isinstance(X, np.ndarray):
@@ -142,7 +142,7 @@ class MiniRocketFeatures(nn.Module):
         num_combinations = self.num_kernels * self.num_dilations
         max_num_channels = min(num_channels, 9)
         max_exponent_channels = np.log2(max_num_channels + 1)
-        np.random.seed(self.random_state)
+        #np.random.seed(self.random_state)
         num_channels_per_combination = (2 ** np.random.uniform(0, max_exponent_channels, num_combinations)).astype(np.int32)
         channel_combinations = torch.zeros((1, num_channels, num_combinations, 1))
         for i in range(num_combinations):
@@ -155,7 +155,7 @@ class MiniRocketFeatures(nn.Module):
         return torch.tensor([(_ * ((np.sqrt(5) + 1) / 2)) % 1 for _ in range(1, n + 1)]).float()
 
     def _get_bias(self, C, num_features_this_dilation):
-        np.random.seed(self.random_state)
+        #np.random.seed(self.random_state)
         idxs = np.random.choice(C.shape[0], self.num_kernels)
         samples = C[idxs].diagonal().T
         biases = torch.quantile(samples, self._get_quantiles(num_features_this_dilation).to(C.device), dim=1).T
