@@ -31,10 +31,7 @@ def main(args):
 		print("\n\n current loaded dataset is....", current_dataset)
 
 		# create an entry in result's data structure, initialized with 'symbolic label -> numeric label' map
-		results = {
-            'labels_map' : data['labels_map'],
-            'n_features' : data['n_channels'] if channel_selection else data['n_time_points_chunks'],
-		}
+		results = {   'labels_map' : data['labels_map'] }
 
 		for model_name,batch_size in zip(model_names,batch_sizes):
 
@@ -60,7 +57,7 @@ def main(args):
 
 			################################ explain ###########################################
 
-			backgrounds2use = ["SMOTE","Proto"] #,"zeros"]	#hardcoded backgrounds to be used
+			backgrounds2use = ["SMOTE","Proto","zeros"]	#hardcoded backgrounds to be used
 
 			for b_name in backgrounds2use:
 
@@ -80,7 +77,9 @@ def main(args):
 					selections, attribution,exp_time = drxai.get_selection()
 
 					# save saliency_maps, selections and other info into data structure
+					n_timeWindows = 19 if exp_name=="WindowSHAP" else 20
 					results[model_name][b_name][exp_name] = {
+						'n_features' : data['n_channels'] if channel_selection else n_timeWindows,
 						key_prefix+'averageFirst' : selections[0],
 						key_prefix+'absoluteFirst' : selections[1],
 						key_prefix+'intersection' : list(

@@ -69,7 +69,6 @@ def load_datasets(dataset_dir, current_dataset ):
 
 	# data structure for dataset
 	data = {'train_set': {}, 'test_set': {}, 'name': current_dataset, 'n_channels': X_train.shape[1],
-            'n_time_points_chunks': 20	# hard coded!
 	}
 
 	# setting train, test sets and label map

@@ -1,8 +1,8 @@
 dataset,model,initial accuracy, smoteBackground Shapley Value Sampling, smoteBackground Feature Ablation, prototypesBackground Feature Ablation,  prototypesBackground Shapley Value Sampling,   zerosBackground Feature Ablation,  zerosBackground Shapley Value Sampling
-FruitFlies,hydra,0.970,0.869,0.948,0.943,0.869,0.948,0.928,
-FruitFlies,miniRocket,0.968,0.890,0.961,0.959,0.890,0.918,0.951,
-BinaryHeartbeat,hydra,0.707,0.694,0.676,0.681,0.698,0.717,0.699,
-BinaryHeartbeat,miniRocket,0.722,0.635,0.695,0.677,0.685,0.660,0.682,
-RightWhaleCalls,hydra,0.789,0.794,0.811,0.810,0.820,0.819,0.808,
-RightWhaleCalls,miniRocket,0.795,0.808,0.795,0.799,0.784,0.789,0.796,
-RightWhaleCalls,ConvTran,0.853,0.878,0.880,0.872,0.876,0.841,0.876,
+FruitFlies,hydra,0.970,0.869,0.948,0.943,0.869,0.948,0.928
+FruitFlies,miniRocket,0.968,0.890,0.961,0.959,0.890,0.918,0.951
+BinaryHeartbeat,hydra,0.707,0.694,0.676,0.681,0.698,0.717,0.699
+BinaryHeartbeat,miniRocket,0.722,0.635,0.695,0.677,0.685,0.660,0.682
+RightWhaleCalls,hydra,0.789,0.794,0.811,0.810,0.820,0.819,0.808
+RightWhaleCalls,miniRocket,0.795,0.808,0.795,0.799,0.784,0.789,0.796
+RightWhaleCalls,ConvTran,0.853,0.878,0.880,0.872,0.876,0.841,0.876

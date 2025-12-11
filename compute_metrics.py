@@ -25,7 +25,6 @@ def main(args):
 	print("performing channel selection") if channel_selection else print("performing time point selection")
 
 	# otherwise load elbow selection, saliency maps and initial accuracies
-	# TODO get totally rid of elbow!
 	all_elbow_selections = np.load(elbow_sel_path, allow_pickle=True).item() if not (elbow_sel_path is None) \
 		else None
 
@@ -53,7 +52,7 @@ def main(args):
 
 		# train models on selected dataset versions
 		current_accuracies = get_accuracies(data,saved_models_path, all_selections, model_names,batch_sizes,
-                                          n_orig_features=XAI_results['n_features'], channel_selection=channel_selection)
+                                        channel_selection=channel_selection)
 		all_accuracies[current_dataset] = current_accuracies
 
 		np.save( result_path ,all_accuracies)

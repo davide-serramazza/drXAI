@@ -8,7 +8,7 @@ from .helpers import elapsed_time, extract_timePoints
 
 from .trainers import train
 
-def get_accuracies(original_data,save_models_path, selections,clf_names, batch_sizes,n_orig_features,channel_selection=True):
+def get_accuracies(original_data,save_models_path, selections,clf_names, batch_sizes,channel_selection=True):
 
 	for clf_name, batch_size in  zip(clf_names,batch_sizes):
 		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -24,6 +24,7 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
 
 			# accuracies vector
 			selection = selection_dict['selection']
+			n_orig_features = selection_dict['n_features']
 			current_dataset_accs, current_dataset_hmeans = np.zeros(shape=(5,)),  np.zeros(shape=(5,))
 
 			# get current selected channels
