@@ -30,10 +30,6 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 		if k=='labels_map':
 			continue
 
-		if k=='n_features':
-			model_name, explainer = info.split("_")[1] , "_".join( info.split("_")[2:] )
-			selection_dict[model_name][explainer] = { 'n_features' : saliency_map_dict[k]}
-
 		if k=='accuracy':
 			# prepare an entry in dict for current classifier
 			model_name = info.replace("_","")
@@ -59,7 +55,7 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 					selection = saliency_map_dict[k1] if saliency_map_dict[k1]!=None else saliency_map_dict[k2]
 					print(k1,"as alternative")
 
-				selection_dict[model_name][explainer]['selection'] = selection
+				selection_dict[model_name][explainer] = { 'selection':  selection }
 
 
 		elif type(saliency_map_dict[k])==dict :

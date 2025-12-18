@@ -24,7 +24,13 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
 
 			# accuracies vector
 			selection = selection_dict['selection']
-			n_orig_features = selection_dict['n_features']
+
+			n_orig_features = original_data['train_set']['X'].shape[1] if channel_selection else \
+				original_data['train_set']['X'].shape[2]
+
+			n_sel_features = len(selection) if channel_selection else \
+				sum([int(s.split(":")[1]) - int(s.split(":")[0]) for s in selection])
+
 			current_dataset_accs, current_dataset_hmeans = np.zeros(shape=(5,)),  np.zeros(shape=(5,))
 
 			# get current selected channels
@@ -48,7 +54,7 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
 				current_dataset_accs[i] = current_accuracy
 				
 				# computing and saving current hmean
-				data_saved = 1 - len(selection)/n_orig_features
+				data_saved = 1 - n_sel_features/n_orig_features
 				current_dataset_hmeans[i] = hmean([data_saved,current_accuracy])
 
 				# save best model

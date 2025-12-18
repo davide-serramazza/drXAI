@@ -77,9 +77,7 @@ def main(args):
 					selections, attribution,exp_time = drxai.get_selection()
 
 					# save saliency_maps, selections and other info into data structure
-					n_timeWindows = 19 if exp_name=="WindowSHAP" else 20
 					results[model_name][b_name][exp_name] = {
-						'n_features' : data['n_channels'] if channel_selection else n_timeWindows,
 						key_prefix+'averageFirst' : selections[0],
 						key_prefix+'absoluteFirst' : selections[1],
 						key_prefix+'intersection' : list(
