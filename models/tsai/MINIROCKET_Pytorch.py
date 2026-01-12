@@ -36,12 +36,11 @@ class MiniRocketFeatures(nn.Module):
 
     kernel_size, num_kernels, fitting = 9, 84, False
 
-    def __init__(self, seq_len, c_in, num_features=10_000, max_dilations_per_kernel=32, random_state=None):
+    def __init__(self, seq_len, c_in, num_features=10_000, max_dilations_per_kernel=32):
         super(MiniRocketFeatures, self).__init__()
         self.c_in, self.seq_len = c_in, seq_len
         self.num_features = num_features // self.num_kernels * self.num_kernels
         self.max_dilations_per_kernel  = max_dilations_per_kernel
-        self.random_state = random_state
 
         # Convolution
         indices = torch.combinations(torch.arange(self.kernel_size), 3).unsqueeze(1)
@@ -69,7 +68,6 @@ class MiniRocketFeatures(nn.Module):
             chunksize = min(num_samples, self.num_dilations * self.num_kernels)
         else:
             chunksize = min(num_samples, chunksize)
-        #np.random.seed(self.random_state)
         idxs = np.random.choice(num_samples, chunksize, False)
         self.fitting = True
         if isinstance(X, np.ndarray):
@@ -142,7 +140,6 @@ class MiniRocketFeatures(nn.Module):
         num_combinations = self.num_kernels * self.num_dilations
         max_num_channels = min(num_channels, 9)
         max_exponent_channels = np.log2(max_num_channels + 1)
-        #np.random.seed(self.random_state)
         num_channels_per_combination = (2 ** np.random.uniform(0, max_exponent_channels, num_combinations)).astype(np.int32)
         channel_combinations = torch.zeros((1, num_channels, num_combinations, 1))
         for i in range(num_combinations):
@@ -155,7 +152,6 @@ class MiniRocketFeatures(nn.Module):
         return torch.tensor([(_ * ((np.sqrt(5) + 1) / 2)) % 1 for _ in range(1, n + 1)]).float()
 
     def _get_bias(self, C, num_features_this_dilation):
-        #np.random.seed(self.random_state)
         idxs = np.random.choice(C.shape[0], self.num_kernels)
         samples = C[idxs].diagonal().T
         biases = torch.quantile(samples, self._get_quantiles(num_features_this_dilation).to(C.device), dim=1).T
@@ -209,11 +205,11 @@ class MiniRocketHead(nn.Sequential):
 
 # %% ../../nbs/056_models.MINIROCKET_Pytorch.ipynb 7
 class MiniRocket(nn.Sequential):
-    def __init__(self, c_in, c_out, seq_len, num_features=10_000, max_dilations_per_kernel=32, random_state=None, bn=True, fc_dropout=0):
+    def __init__(self, c_in, c_out, seq_len, num_features=10_000, max_dilations_per_kernel=32,  bn=True, fc_dropout=0):
 
         # Backbone
         backbone =  MiniRocketFeatures(c_in, seq_len, num_features=num_features, max_dilations_per_kernel=max_dilations_per_kernel,
-                                       random_state=random_state)
+                                       )
         num_features = backbone.num_features
 
         # Head

@@ -68,15 +68,12 @@ def load_datasets(dataset_dir, current_dataset ):
 
 
 	# data structure for dataset
-	data = {'train_set': {}, 'test_set': {}, 'name': current_dataset, 'n_channels': X_train.shape[1],
-	}
+	data = {'train_set': {}, 'test_set': {}, 'name': current_dataset}
 
 	# setting train, test sets and label map
 	data['train_set']['X'] = X_train;	data['test_set']['X'] = X_test
 	data['train_set']['y'] = y_train;	data['test_set']['y'] = y_test
 	data['labels_map'] = labels_map
-
-
 
 	return data
 
