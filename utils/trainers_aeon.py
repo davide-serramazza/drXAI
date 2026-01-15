@@ -11,6 +11,13 @@ from memory_profiler import  memory_usage
 #TODO clean and comment
 
 
+#TODO include classifier name!
+exceptions = {
+	'AudioMNIST'  : {  'hydra_params' : {'n_kernels' : 2,'n_groups' : 32}, 'multiRocket_params' : {'n_kernels' : 781}},
+	'MosquitoSound'  : {  'hydra_params' : {'n_kernels' : 2}, 'multiRocket_params' : {'n_kernels' : 1532}},
+}
+
+
 def profile_function(func, *args, **kwargs):
 
 	# Variable to store the result
@@ -51,10 +58,12 @@ def train(dataset, device, batch_size, model_name, return_train_predictions=True
 
 	# TODO only some allowed clfs!!
 
+	hyper_params = exceptions[dataset['name']] if dataset['name'] in exceptions else {}
+	print(hyper_params)
+
 	trainer_f = ( lambda data : _train_aeon(data,HIVECOTEV2())) if model_name == "HC2" else \
 		( lambda data : _train_aeon(data,DrCIFClassifier())) if model_name == "drCIF" else \
-		( lambda data : _train_aeon(data,MultiRocketHydra(hydra_params = {},
-                                                        multiRocket_params = {})
+		( lambda data : _train_aeon(data,MultiRocketHydra(**hyper_params)
 									)) if model_name == "MRY" else \
 		( lambda data : _train_aeon(data,MultiRocketHydraClassifier()))   #TODO fix a
 
