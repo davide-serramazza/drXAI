@@ -25,7 +25,7 @@ def main(args):
         #results_path = os.path.join(results_dir, "_".join( (current_dataset ,"results") ) )+".npz"
         dataset_dir = os.path.join(base_path,current_dataset)
         data = load_datasets(dataset_dir, current_dataset)
-        print("\n\n current loaded dataset is....", current_dataset)
+        print("\n\n current loaded dataset is....", data['name'])
 
         results[current_dataset] = {}
 
