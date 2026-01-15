@@ -1,5 +1,4 @@
 import numpy as np
-from imblearn.over_sampling import SMOTE
 
 def class_prototypes_avg(X_train, y_train):
 
@@ -11,6 +10,7 @@ def class_prototypes_avg(X_train, y_train):
 
     return np.mean(prototypes, axis=0, keepdims=True)
 
+# TODO we don't need this!
 def smote_avg(X_train, y_train):
     n_instance, n_channels, n_time_points = X_train.shape
 

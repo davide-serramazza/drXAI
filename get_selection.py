@@ -55,7 +55,7 @@ def main(args):
 
 			################################ explain ###########################################
 
-			backgrounds2use = ["SMOTE","Proto","zeros"]	#hardcoded backgrounds to be used
+			backgrounds2use = ["Proto","zeros"]	#hardcoded backgrounds to be used
 
 			for b_name in backgrounds2use:
 
