@@ -8,6 +8,8 @@ import pickle
 import gc
 import numpy as np
 
+#TODO clean and comment
+
 def main(args):
     base_path = args.dataset_dir
     saved_models_dir = args.saved_models_path
@@ -30,25 +32,43 @@ def main(args):
         for model_name in model_names:
 
             batch_size = -1
-            # TODO use **kwargs to say which value is which param?
-            model, current_accuracy, mem_used, training_time = elapsed_time(
-                train,(data,  device, batch_size, model_name,False) )
+            best_accuracy = -1
+            story = {
+                'accuracy' : [],
+                'average_memory_GB' : [],
+                'peak_memory_GB' :[],
+                'training_time' : []
+            }
 
-            print(model_name,"training over! Accuracy is: ",current_accuracy, "\tTraining time:", training_time)
-            file_name = "_".join((current_dataset,model_name,"allFeatures"))+".pkl"
+            for i in range(5):
+                # TODO use **kwargs to say which value is which param?
+                model, current_accuracy, mem_used, training_time = elapsed_time(
+                    train,(data,  device, batch_size, model_name,False) )
 
-            with open(os.path.join(saved_models_dir,file_name), 'wb') as f:
-                pickle.dump(model, f)
-            del model
-            gc.collect()
+                story['accuracy'].append(current_accuracy)
+                story['average_memory_GB'].append(mem_used['average_memory_GB'])
+                story['peak_memory_GB'].append(mem_used['peak_memory_GB'])
+                story['training_time'].append(training_time)
+
+                print(i,")",model_name,"training over! Accuracy is: ",current_accuracy, "\tTraining time:", training_time)
+                if current_accuracy > best_accuracy:
+                    current_accuracy = best_accuracy
+
+                    file_name = "_".join((current_dataset,model_name,"allFeatures"))+".pkl"
+                    with open(os.path.join(saved_models_dir,file_name), 'wb') as f:
+                        pickle.dump(model, f)
+
+                del model
+                gc.collect()
 
             results[current_dataset][model_name] = {
-                'accuracy' : current_accuracy,
-                'average_memory_GB' : mem_used['average_memory_GB'],
-                'peak_memory_GB' : mem_used['peak_memory_GB'],
-                'training_time' : training_time
+                'accuracy' : np.mean(story['accuracy']),
+                'average_memory_GB' : np.mean(story['average_memory_GB']),
+                'peak_memory_GB' : np.max(story['peak_memory_GB']),
+                'training_time' : np.mean(story['training_time'])
             }
             #torch.save(model, os.path.join(saved_models_dir,file_name))
+        break
 
     np.save(results_file, results)
 

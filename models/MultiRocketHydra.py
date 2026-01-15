@@ -9,49 +9,74 @@ from aeon.transformations.collection.convolution_based._hydra import HydraTransf
 
 from sklearn.pipeline import Pipeline
 
+from models.aaltd2024.code.ridge import RidgeClassifier
+from models.aaltd2024.code.utils import Dataset
+
+
+#TODO clean and comment
+
+
+class dummy_transform():
+	def __init__(self, X):
+		self.X = X
+		self.num_features = X.shape[1]
+
+	def __call__(self, *args, **kwargs):
+		return args[0]
 
 
 class MultiRocketHydra():
 
-    def __init__(self,
-                 hydra_params = {},
-                 multiRocket_params = {},
-                 n_jobs = -1
-                 ):
-        self.hydra = Pipeline(
-            steps=[('hydra',HydraTransformer( n_jobs=n_jobs , **hydra_params)),
-                   ('scaler',_SparseScaler())]
-        )
-        self.multiRocket = Pipeline(
-            steps=[('multiRocket',MultiRocket( n_jobs=n_jobs, **multiRocket_params)),
-                   ('scaler',StandardScaler())]
-        )
+	def __init__(self,
+			hydra_params = {},
+			multiRocket_params = {},
+			n_jobs = -1
+		):
+		self.hydra = Pipeline(
+			steps=[('hydra',HydraTransformer( n_jobs=n_jobs , **hydra_params)),
+				   ('scaler',_SparseScaler())]
+		)
+		self.multiRocket = Pipeline(
+			steps=[('multiRocket',MultiRocket( n_jobs=n_jobs, **multiRocket_params)),
+				   ('scaler',StandardScaler())]
+		)
 
-        self.clf = RidgeClassifierCV(
-            alphas=np.logspace(-3, 3, 10)
-        )
+		#self.clf = RidgeClassifierCV(
+		#	alphas=np.logspace(-3, 3, 10)
+		#)
+		self.clf = None
 
-        super().__init__()
+		super().__init__()
 
-    def fit(self,X,y):
-        Xt_hydra  = self.hydra.fit_transform(X)
-        Xt_multiRocket = self.multiRocket.fit_transform(X)
+	def fit(self,X,y):
+		Xt_hydra  = self.hydra.fit_transform(X)
+		Xt_multiRocket = self.multiRocket.fit_transform(X)
 
-        Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
+		Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
 
-        self.clf.fit(Xt_total,y)
+		#dt = dummy_transform(Xt_total)
+		self.clf = RidgeClassifier(dummy_transform(Xt_total))
 
-        return self
+		train_loader = Dataset(Xt_total,y,batch_size=X.shape[0])
 
-    def _predict(self,X) -> np.ndarray:
-        Xt_hydra  = self.hydra.transform(X)
-        Xt_multiRocket = self.multiRocket.transform(X)
+		self.clf.fit(train_loader)
+		#self.clf.fit(Xt_total,y)
 
-        Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
+		return self
 
-        return self.clf.predict(Xt_total)
+	def _predict(self,X,y) -> np.ndarray:
+		# TODO understand this warning "/home/davide/miniconda3/envs/train_aeon_clfs/lib/python3.13/site-packages/sklearn/pipeline.py:61: FutureWarning: This Pipeline instance is not fitted yet. Call 'fit' with appropriate arguments before using other methods such as transform, predict, etc. This will raise an error in 1.8 instead of the current warning.
+		Xt_hydra  = self.hydra.transform(X)
+		Xt_multiRocket = self.multiRocket.transform(X)
 
-    def score(self,X,y):
-        y_pred = self._predict(X)
-        return accuracy_score(y,y_pred)
+		Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
+
+		test_loader = Dataset(Xt_total,y,batch_size=X.shape[0],shuffle=False)
+
+		return self.clf.predict(test_loader)
+
+
+	def score(self,X,y):
+		y_pred = self._predict(X,y)
+		return accuracy_score(y,y_pred)
 
