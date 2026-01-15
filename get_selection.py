@@ -28,8 +28,6 @@ def main(args):
 		dataset_dir =  os.path.join(base_path,current_dataset)
 		data = load_datasets(dataset_dir, current_dataset)
 
-		print("\n\n current loaded dataset is....", current_dataset)
-
 		# create an entry in result's data structure, initialized with 'symbolic label -> numeric label' map
 		results = {   'labels_map' : data['labels_map'] }
 
@@ -39,7 +37,7 @@ def main(args):
 				train,(data,  device, batch_size, model_name) )
 
 			print(model_name,"training over! Accuracy is: ",current_accuracy)
-			file_name = "_".join((current_dataset,model_name,"allChannel"))+".pth"
+			file_name = "_".join((current_dataset,model_name,"allFeatures"))+".pth"
 			torch.save(model, os.path.join(saved_models_dir,file_name))
 
 			# save stats in the result data structure

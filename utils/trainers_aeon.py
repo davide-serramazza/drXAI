@@ -35,7 +35,7 @@ def profile_function(func, *args, **kwargs):
 
 def _train_aeon(data,model_class):
     X_train, y_train = data
-    model =  model_class( n_jobs=-1 )
+    model =  model_class( n_jobs = -1  )
     model.fit(X_train, y_train)
 
     return model

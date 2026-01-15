@@ -7,6 +7,8 @@ from torch.utils.data import DataLoader
 from aeon.datasets import load_from_ts_file
 from models.ConvTran.utils import dataset_class
 from models.aaltd2024.code.utils import Dataset
+#from datasets import load_dataset
+
 
 def sample_instances(X , y_true, y_pred, n):
 	"""
@@ -48,14 +50,16 @@ def sample_instances(X , y_true, y_pred, n):
 
 def load_datasets(dataset_dir, current_dataset ):
 
+	# TODO: catch if is a monster dataset based on dataset_dir.count("monster")
 	# load data
-	try:
-		# case for UAE/'TimeSeriesClassification.com'
-		X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TRAIN.ts"))
-		X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TEST.ts"))
+	if current_dataset.count("monster")>0:
+		# CASE FOR MONSTER DATASETS
+		current_dataset = current_dataset.split("--")[-1]
+		snapshot_id = os.listdir(os.path.join(dataset_dir,"snapshots"))[0]
+		dataset_dir = os.path.join(dataset_dir,"snapshots",snapshot_id)
 
-	except FileNotFoundError:
-		# case for MONSTER datasets
+		print(f"Loading MONSTER dataset {current_dataset} from snapshot {snapshot_id}\n")
+
 		X= np.load(os.path.join(dataset_dir, f"{current_dataset}_X.npy"))
 		y = np.load(os.path.join(dataset_dir, f"{current_dataset}_y.npy"))
 		# load the folds
@@ -63,6 +67,14 @@ def load_datasets(dataset_dir, current_dataset ):
 		# test set is the last fold,everything else is train set
 		X_test = X[folds[-1]]	; y_test = y[folds[-1]]
 		X_train = np.concatenate( [ X[folds[i]] for i in range(4)] ) ; y_train =  np.concatenate( [ y[folds[i]] for i in range(4)] )
+
+	else:
+		# case for UAE/'TimeSeriesClassification.com'
+		# TODO is this necessary?
+		print(f"Loading UAE dataset {current_dataset}\n")
+		X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TRAIN.ts"))
+		X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TEST.ts"))
+
 
 	y_train, y_test,labels_map = to_numeric_labels(y_train, y_test)
 
@@ -74,6 +86,9 @@ def load_datasets(dataset_dir, current_dataset ):
 	data['train_set']['X'] = X_train;	data['test_set']['X'] = X_test
 	data['train_set']['y'] = y_train;	data['test_set']['y'] = y_test
 	data['labels_map'] = labels_map
+
+	print(f"Loaded {current_dataset} dataset with {X_train.shape[0]} training samples and {X_test.shape[0]} test samples"
+		  f" and {len(labels_map)} classes\n")
 
 	return data
 
