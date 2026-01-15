@@ -1,6 +1,11 @@
 from aeon.classification.hybrid import HIVECOTEV2
+# TODO remove this!
 from aeon.classification.convolution_based import MultiRocketHydraClassifier
 from aeon.classification.interval_based import DrCIFClassifier
+
+
+from models.MultiRocketHydra import MultiRocketHydra
+
 from memory_profiler import  memory_usage
 
 
@@ -33,9 +38,8 @@ def profile_function(func, *args, **kwargs):
 
 
 
-def _train_aeon(data,model_class):
+def _train_aeon(data,model):
     X_train, y_train = data
-    model =  model_class( n_jobs = -1  )
     model.fit(X_train, y_train)
 
     return model
@@ -44,9 +48,14 @@ def _train_aeon(data,model_class):
 
 def train(dataset, device, batch_size, model_name, return_train_predictions=True, verbose=False):
 
-    trainer_f = ( lambda data : _train_aeon(data,HIVECOTEV2)) if model_name == "HC2" else \
-        ( lambda data : _train_aeon(data,DrCIFClassifier)) if model_name == "drCIF" else \
-        ( lambda data : _train_aeon(data,MultiRocketHydraClassifier))   #TODO fix a
+    # TODO only some allowed clfs!!
+
+    trainer_f = ( lambda data : _train_aeon(data,HIVECOTEV2())) if model_name == "HC2" else \
+        ( lambda data : _train_aeon(data,DrCIFClassifier())) if model_name == "drCIF" else \
+        ( lambda data : _train_aeon(data,MultiRocketHydra(hydra_params = {},
+                                                          multiRocket_params = {})
+                                    )) if model_name == "MRY" else \
+        ( lambda data : _train_aeon(data,MultiRocketHydraClassifier()))   #TODO fix a
 
     score_f =  lambda model, X,y : model.score(X,y)
 
@@ -70,7 +79,7 @@ def dataloader_aeon(dataset, batch_size=-1,only_train=False):
     data_train =  dataset['train_set']['X'] , dataset['train_set']['y']
 
     if not only_train:
-        data_test  =        dataset['test_set']['X'] , dataset['test_set']['y']
+        data_test  =        dataset['test_set']['X'], dataset['test_set']['y']
 
     # if only_train==False, return also the test set's
     to_return = data_train if only_train else (data_train,  data_test)

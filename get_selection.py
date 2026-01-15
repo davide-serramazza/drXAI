@@ -3,6 +3,9 @@ from utils.data_utils import *
 from utils.trainers import train
 from drXAI import drXAI
 
+#TODO clean models dir e.g. remove tsai.
+#TODO switch back to old ConvTran's train
+
 def main(args):
 
 	# get arguments
@@ -99,7 +102,7 @@ if __name__ == '__main__':
 	parser.add_argument("explainer_results_dir", type=str, help="directory where to save classifiers and "
 				 "attributions info including related selection. Format is one file per dataset")
 	parser.add_argument("random_seed", type=int, help="random seed to be used for reproducibility")
-	# TODO should we select the classifier here????
+	# TODO should we select the classifier here???? Should I fix hydra as the only classifiers here??
 	parser.add_argument("--classifiers_batchSizes", nargs='+',help="classifier name is either hydra,"
 																   "miniRocket or ConvTran")
 	parser.add_argument('--channel_selection',type=str2bool, default=False, help="whether to perform "
