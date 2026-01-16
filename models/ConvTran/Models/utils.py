@@ -54,19 +54,22 @@ class SaveBestModel:
     model state.
     """
 
-    def __init__(self, best_valid_loss=float('inf')):
+    def __init__(self, best_valid_loss=float('inf'), n_iteration_early_stop=20):
         self.best_valid_loss = best_valid_loss
+        self.n_iteration_early_stop = n_iteration_early_stop
+        self.best_epoch = -1
 
     def __call__(self, current_valid_loss, epoch, model, optimizer, criterion, path):
 
         if current_valid_loss <= self.best_valid_loss:
 
             self.best_valid_loss = current_valid_loss
-            print(f"Best validation loss: {self.best_valid_loss}")
-            print(f"Saving best model for epoch: {epoch}\n")
+            self.best_epoch = epoch
             save_model(path, epoch, model, optimizer)
 
-        return self.best_valid_loss
+        to_early_stop = epoch - self.best_epoch >= self.n_iteration_early_stop
+
+        return self.best_valid_loss, to_early_stop
 
 
 def load_model(model, model_path, optimizer=None, resume=False, change_output=False,

@@ -3,7 +3,7 @@ import logging
 import torch
 import numpy as np
 from collections import OrderedDict
-import time
+import timeit
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 
@@ -217,10 +217,6 @@ def train_runner(config, model, trainer, val_evaluator=None, verbose=False):
     :return:
     """
 
-    final_train = (val_evaluator==None)
-    print_str = '\nConvTran final train run:' if final_train else '\nConvTran validation run:'
-    logger.info(print_str)
-
     epochs = config['epochs']
     optimizer = config['optimizer']
     loss_module = config['loss_module']
@@ -229,33 +225,35 @@ def train_runner(config, model, trainer, val_evaluator=None, verbose=False):
     best_value = 1e16
     metrics = []  # (for validation) list of lists: for each epoch, stores metrics like loss, ...
     best_metrics = {}
-    # save_best_acc_model = utils.SaveBestACCModel()
     best_loss , best_n_epochs = np.inf , -1
-    total_start_time = time.time()
+    start_time = timeit.default_timer()
+    save_best_model = utils.SaveBestModel()
 
     epoch = config['epochs']
     for epoch in tqdm(range(start_epoch + 1, epochs + 1), desc='Training Epoch', leave=False):
 
         aggr_metrics_train = trainer.train_epoch(epoch)  # dictionary of aggregate epoch metrics
-        if not final_train:
-            aggr_metrics_val, best_metrics, best_value = validate(val_evaluator, tensorboard_writer, config, best_metrics,
-                                                                  best_value, epoch)
-            if aggr_metrics_val['loss'] < best_loss:
-                best_loss = aggr_metrics_val['loss'] ; best_n_epochs = epoch
+        aggr_metrics_val, best_metrics, best_value = validate(val_evaluator, tensorboard_writer, config, best_metrics,
+                                                              best_value, epoch)
+        # TODO keep path as constant?
+        _, to_early_stop = save_best_model(aggr_metrics_val['loss'], epoch, model, optimizer, loss_module, path="tmp/currentConvTran.pth")
 
-            metrics_names, metrics_values = zip(*aggr_metrics_val.items())
-            metrics.append(list(metrics_values))
+        metrics_names, metrics_values = zip(*aggr_metrics_val.items())
+        metrics.append(list(metrics_values))
 
-            print_str = 'Epoch {} Training Summary: '.format(epoch)
-            for k, v in aggr_metrics_train.items():
-                tensorboard_writer.add_scalar('{}/train'.format(k), v, epoch)
-                print_str += '{}: {:8f} | '.format(k, v)
-            if verbose:
-                logger.info(print_str)
+        print_str = 'Epoch {} Training Summary: '.format(epoch)
+        for k, v in aggr_metrics_train.items():
+            tensorboard_writer.add_scalar('{}/train'.format(k), v, epoch)
+            print_str += '{}: {:8f} | '.format(k, v)
+        if verbose:
+            logger.info(print_str)
 
-    total_runtime = time.time() - total_start_time
+        if to_early_stop:
+            break
+
+    total_runtime = timeit.default_timer() - start_time
 
     if verbose:
         logger.info("Train Time: {} hours, {} minutes, {} seconds\n".format(*utils.readable_time(total_runtime)))
 
-    return best_n_epochs, model
+    return

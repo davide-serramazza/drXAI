@@ -1,4 +1,6 @@
-from utils.trainers_aeon import train
+# TODO what to do here????
+#from utils.trainers_aeon import train
+from utils.trainers import train
 from utils.data_utils import load_datasets
 from utils.helpers import str2bool, elapsed_time
 
@@ -16,7 +18,7 @@ def main(args):
     model_names = args.classifiers
     results_file = args.result_file
 
-    device = "cpu"  #HARDCODED
+    device = "cuda"  #HARDCODED
 
     results = {}
 
@@ -31,7 +33,7 @@ def main(args):
 
         for model_name in model_names:
 
-            batch_size = -1
+            batch_size = 32
             best_accuracy = -1
             story = {
                 'accuracy' : [],

@@ -106,46 +106,36 @@ def to_numeric_labels(y_train, y_test):
 ################################ ConvTran functions #######################################
 
 
-def load_data_ConvTran(dataset , batch_size=32, val_ratio=0.25, only_train=False):
+def load_data_ConvTran(dataset , batch_size=32, val_ratio=0.1):
 
 	# get different dataset parts
 	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
 
-	if not only_train:
-		X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
+	X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
 
-		# assuming equal length data
-		_ , n_channels , seq_len = X_train.shape
+	# assuming equal length data
+	_ , n_channels , seq_len = X_train.shape
 
-		train_data, train_label, _, val_data, val_label, _ = split_dataset(X_train, y_train,val_ratio)
-
-
-		train_loader = DataLoader(dataset=dataset_class(train_data, train_label)
-								  , batch_size=batch_size, shuffle=True, pin_memory=True)
-		val_loader = DataLoader(dataset= dataset_class(val_data, val_label)
-								, batch_size=batch_size, shuffle=False, pin_memory=True)
-		dev_loader = DataLoader(dataset=dataset_class(X_train, y_train)
-								, batch_size=batch_size, shuffle=True, pin_memory=True)
-		test_loader = DataLoader(dataset=dataset_class(X_test,y_test)
-								 , batch_size=batch_size, shuffle=False, pin_memory=True)
-
-		to_return =  train_loader, val_loader, dev_loader, test_loader
-
-	else:
-		train_dataset = dataset_class(X_train, y_train)
-		to_return = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
-
-	return to_return
+	train_data, train_label, _, val_data, val_label, _ = split_dataset(X_train, y_train,val_ratio)
 
 
-def split_dataset(data, label, validation_ratio, random_state = None):
+	train_loader = DataLoader(dataset=dataset_class(train_data, train_label)
+							  , batch_size=batch_size, shuffle=True, pin_memory=True)
+	val_loader = DataLoader(dataset= dataset_class(val_data, val_label)
+							, batch_size=batch_size, shuffle=False, pin_memory=True)
+	test_loader = DataLoader(dataset=dataset_class(X_test,y_test)
+							 , batch_size=batch_size, shuffle=False, pin_memory=True)
+
+	return  train_loader, val_loader, test_loader
+
+
+
+def split_dataset(data, labels, validation_ratio, random_state = None):
 	splitter = StratifiedShuffleSplit(n_splits=1, test_size=validation_ratio, random_state=random_state) #, random_state=1234)
-	train_indices, val_indices = zip(*splitter.split(X=np.zeros(len(label)), y=label))
+	train_indices, val_indices = zip(*splitter.split(X=np.zeros(len(labels)), y=labels))
 
-	train_data = data[train_indices]
-	train_label = label[train_indices]
-	val_data = data[val_indices]
-	val_label = label[val_indices]
+	train_data , train_label= data[train_indices], labels[train_indices]
+	val_data, val_label = data[val_indices], labels[val_indices]
 
 	return train_data, train_label, train_indices[0] , val_data, val_label, val_indices[0]
 
