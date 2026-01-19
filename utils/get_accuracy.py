@@ -65,17 +65,17 @@ def get_accuracies(original_data,save_models_path, selections,clf_names, batch_s
 			# extrac mean, std deviation and best accuracy
 			selections[clf_name][name]	 = 	{
 				'training_time' : training_time,
-                'selection' : selection,
-                'accs' : {
-                    'mean' : np.mean(current_dataset_accs).item(),
-                    'std' : np.std(current_dataset_accs).item() ,
-                    'best' :  np.max(current_dataset_accs).item(),
-                },
-                'hmeans' : {
-                    'mean' : np.mean(current_dataset_hmeans).item(),
-                    'std' : np.std(current_dataset_hmeans).item() ,
-                    'best' :  np.max(current_dataset_hmeans).item(),
-                }
+				'selection' : selection,
+				'accs' : {
+					'mean' : np.mean(current_dataset_accs).item(),
+					'std' : np.std(current_dataset_accs).item() ,
+					'best' :  np.max(current_dataset_accs).item(),
+				},
+				'hmeans' : {
+					'mean' : np.mean(current_dataset_hmeans).item(),
+					'std' : np.std(current_dataset_hmeans).item() ,
+					'best' :  np.max(current_dataset_hmeans).item(),
+				}
 			}
 
 			print(clf_name, name, "evaluation computed!")

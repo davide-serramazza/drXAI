@@ -52,7 +52,6 @@ class MultiRocketHydra():
 
 		self.clf = RidgeClassifierCV (alphas=np.logspace(-3, 3, 10)) if sklearn_classifier else None
 		self.sklearn_classifier = sklearn_classifier
-		print(f"sklearn_classifier: {sklearn_classifier}", type(self.clf))
 
 		super().__init__()
 

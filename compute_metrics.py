@@ -52,7 +52,7 @@ def main(args):
 
 		# train models on selected dataset versions
 		current_accuracies = get_accuracies(data,saved_models_path, all_selections, model_names,batch_sizes,
-                                        channel_selection=channel_selection)
+										channel_selection=channel_selection)
 		all_accuracies[current_dataset] = current_accuracies
 
 		np.save( result_path ,all_accuracies)

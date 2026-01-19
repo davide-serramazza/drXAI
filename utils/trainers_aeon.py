@@ -1,29 +1,45 @@
-from aeon.classification.hybrid import HIVECOTEV2
-# TODO remove this!
-from aeon.classification.convolution_based import MultiRocketHydraClassifier
-from aeon.classification.interval_based import DrCIFClassifier
-
+from torch.cuda import  empty_cache as empty_gpu_cache
 
 from models.MultiRocketHydra import MultiRocketHydra
 
+from models.aaltd2024.code.ridge import RidgeClassifier
+from models.aaltd2024.code.utils import *
+
+
+from utils.data_utils import dataloader_aeon
+
 from memory_profiler import  memory_usage
-
-#TODO clean and comment
-
 
 #TODO include classifier name!
 exceptions = {
-	'AudioMNIST'  : {  'hydra_params' : {'n_kernels' : 2,'n_groups' : 32}, 'multiRocket_params' : {'n_kernels' : 781}},
-	'MosquitoSound'  : {  'hydra_params' : {'n_kernels' : 2}, 'multiRocket_params' : {'n_kernels' : 1532}},
+	('MRH' 'AudioMNIST')  : {  'hydra_params' : {'n_kernels' : 2,'n_groups' : 32}, 'multiRocket_params' : {'n_kernels' : 781}},
+	('MRH', 'MosquitoSound')  : {  'hydra_params' : {'n_kernels' : 2}, 'multiRocket_params' : {'n_kernels' : 1532}},
+	('MRH', 'PAMAP2')  :  { 'sklearn_classifier' : True} ,
+	('ConvTran' , 'CornellWhaleChallenge')  : {  'batch_size' : 8},
+	('ConvTran' , 'FruitFlies')  : {  'batch_size' : 6},
+	('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12},
+	('hydra', 'AudioMNIST')  :  { 'batch_size' : 64} ,
 }
 
 
+
 def profile_function(func, *args, **kwargs):
+	"""
+	profile a function's memory usage and runtime
+	:param func: 	function to be profiled
+	:param args: 	arguments to be passed to func
+	:param kwargs: 	keyword arguments to be passed to func
+	:return:
+	"""
 
 	# Variable to store the result
 	trained_model = []
 
 	def wrapper():
+		"""
+		wrapper that executes func with the right arguments and store the result
+		:return:
+		"""
 		"""Wrapper that captures the return value"""
 		result = func(*args, **kwargs)
 		trained_model.append(result)
@@ -44,54 +60,105 @@ def profile_function(func, *args, **kwargs):
 
 	return trained_model[0], mem_usage
 
-
-
 def _train_aeon(data,model):
+	# TODO simple lambda instead?
 	X_train, y_train = data
 	model.fit(X_train, y_train)
 
 	return model
 
+def _trainer_hydra( data_train, device="cuda"):
+	"""
+	function to train hydra model
+	:param data_train:  DataLoader for training set
+	:param device:      device to train on
+	:return:            trained model
+	"""
+
+	# extract TS info
+	_ , n_channels, length = data_train.shape
+	n_classes =  data_train.classes.shape[0]
+
+	# apply the specified transform function i.e.either 'HydraMultivariateGPU' or 'MiniRocketFeatures'
+	transform = HydraMultivariateGPU(length,n_channels).to(device) #model_f(length,n_channels).to(device)
+
+	# train GPU's RidgeClassifier
+	model = RidgeClassifier(transform=transform, device=device)
+	model.fit(data_train, num_classes=n_classes)
+
+	return model
 
 
-def train(dataset, device, batch_size, model_name, return_train_predictions=True, verbose=False):
+def _trainer_ConvTran( train_loader,val_loader,  kwargs={} ):
+	# TODO do i need this method at all?
+	# TODO update documentation
+	"""
+	function to train ConvTran model
+	:param train_loader:    DataLoader for training set (the remaining part after train-val split)
+	:param val_loader:      DataLoader for validation set
+	:param device:          device to train on
+	:return:                trained model
+	"""
 
-	# TODO only some allowed clfs!!
+	for k in kwargs: ConvTran_default_hyperparams[k] = kwargs[k]
 
-	hyper_params = exceptions[dataset['name']] if dataset['name'] in exceptions else {}
-	print(hyper_params)
 
-	trainer_f = ( lambda data : _train_aeon(data,HIVECOTEV2())) if model_name == "HC2" else \
-		( lambda data : _train_aeon(data,DrCIFClassifier())) if model_name == "drCIF" else \
-		( lambda data : _train_aeon(data,MultiRocketHydra(**hyper_params)
-									)) if model_name == "MRY" else \
-		( lambda data : _train_aeon(data,MultiRocketHydraClassifier()))   #TODO fix a
+	shape, n_labels = train_loader.dataset.feature.shape, np.unique(train_loader.dataset.labels).shape[0]
 
-	score_f =  lambda model, X,y : model.score(X,y)
+	model = build_ConvTran_model(ConvTran_default_hyperparams, shape , n_labels, verbose=False)
 
-	dataloader = dataloader_aeon(dataset)
-	print("training", model_name)
-	model, mem_used = profile_function(trainer_f, dataloader[0])
-	accuracy = score_f (model,*dataloader[1])
+	train_ConvTran(model,train_loader,ConvTran_default_hyperparams,val_loader,verbose=False)
+
+	return model
+
+
+def train(dataset, model_name, return_train_predictions=True):
+	# TODO redo documentation!
+
+	# get optional hyper parameters for specific model/dataset combinations
+	key = (model_name,dataset['name'])
+	hyper_params = exceptions[key] if key in exceptions else {}
+
+	# set data loaders, trainer and score functions according to current model
+
+	dataloader_f = load_data_ConvTran if model_name=='ConvTran' else \
+		dataloader_hydra if model_name=="hydra" else \
+			dataloader_aeon
+
+	trainer_f = (lambda data: _trainer_hydra(data)) if model_name=='hydra' else \
+		(lambda train_loader, val_loader : _trainer_ConvTran(train_loader,val_loader,hyper_params)) if model_name=='ConvTran' else \
+			( lambda data : _train_aeon(data,MultiRocketHydra(**hyper_params)) )       # TODO each possible aeon classifiers
+
+
+	score_f = (lambda model, data :(1- model.score(data).cpu().numpy().item()) ) if model_name=='hydra' else \
+		(lambda model, data: model.eval().score(data)) if model_name=='ConvTran' else \
+			(lambda model, X,y : model.score(X,y) )     #aeon classifiers case
+
+	# use previously defined functions
+	data_loader = dataloader_f(dataset,kwargs=hyper_params)
+
+	if model_name in ['ConvTran','hydra']:
+		# if torch GPU model, empty cache and reset peak memory stats
+		empty_gpu_cache(); torch.cuda.synchronize(); torch.cuda.reset_peak_memory_stats()
+		# then train the model and get memory usage
+		model = trainer_f(*data_loader[:-1])
+		mem_used = {
+			'peak_memory_GB': torch.cuda.max_memory_allocated()  / 1024**3,
+			'average_memory_GB': torch.cuda.memory_allocated()  / 1024**3
+		}
+	else:
+		# case for aeon classifiers
+		model, mem_used = profile_function(trainer_f, data_loader[0])
+
+	# TODO can I use a single statement here?
+	accuracy = score_f( model, data_loader[1] ) if model_name in ['ConvTran','hydra'] else score_f(model,*data_loader[1])
 
 	to_return = model, accuracy, mem_used
 
 	if return_train_predictions:
-		train_predictions = model.predict(dataloader[0][0])
+		# if required, get train set predictions on a NON shuffled dataloader
+		train_data = dataloader_f(dataset,only_train=True,**hyper_params)
+		train_predictions = model.predict(train_data)
 		to_return = (*to_return, train_predictions)
-
-	return to_return
-
-
-
-def dataloader_aeon(dataset, batch_size=-1,only_train=False):
-
-	data_train =  dataset['train_set']['X'] , dataset['train_set']['y']
-
-	if not only_train:
-		data_test  =        dataset['test_set']['X'], dataset['test_set']['y']
-
-	# if only_train==False, return also the test set's
-	to_return = data_train if only_train else (data_train,  data_test)
 
 	return to_return
