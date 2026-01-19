@@ -12,10 +12,10 @@ def extract_timePoints_features_names(attribution):
 	(samples, channels, timepoints).
 
 	:return:
-	    - feature_relevance: A 1D numpy array containing averaged feature attribution
-	     across samples
-	    - feature_names: A list of strings each of those indicating start and end
-	    position of the corresponding feature.
+		- feature_relevance: A 1D numpy array containing averaged feature attribution
+		 across samples
+		- feature_names: A list of strings each of those indicating start and end
+		position of the corresponding feature.
 	"""
 
 	# identify where the unique values of the saliency maps are
