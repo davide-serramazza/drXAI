@@ -36,8 +36,8 @@ def main(args):
 
 		for model_name,batch_size in zip(model_names,batch_sizes):
 
-			current_accuracy , model,y_train_pred, training_time = elapsed_time(
-				train,(data,  device, batch_size, model_name) )
+			model, current_accuracy,memory_used, y_train_pred,training_time = elapsed_time(
+				train,(data, model_name,True) )
 
 			print(model_name,"training over! Accuracy is: ",current_accuracy)
 			file_name = "_".join((current_dataset,model_name,"allFeatures"))+".pth"
@@ -48,6 +48,8 @@ def main(args):
 			results[model_name] = {
 				'training_time' : training_time,
 				'accuracy' : current_accuracy,
+				'average_memory_GB' : memory_used['average_memory_GB'],
+				'peak_memory_GB' : memory_used['peak_memory_GB']
 			}
 
 			# get 'explaining set' based on n_sample and correctly classified train set instances
@@ -63,6 +65,7 @@ def main(args):
 			for b_name in backgrounds2use:
 
 				# for each background initialise result dict, then explain
+				# TODO do I still need to index "model_name" in results data structure??
 				results[model_name][b_name] = {}
 				key_prefix = 'selected_channels_' if channel_selection else 'selected_timePoints_'
 
@@ -72,6 +75,7 @@ def main(args):
 				for exp_name in explainers2use:
 					drxai = drXAI(channel_selection=channel_selection, classifier=model,dataset_X=X2explain,
 								  dataset_y=labels, explainer_name=exp_name, background_name=b_name,
+								  # TODO what to do about this batch_size ????
 								  explainer_kwargs={'batch_size':batch_size}
 								  )
 					selections, attribution,exp_time = drxai.get_selection()
