@@ -3,6 +3,8 @@ import random
 import torch
 import argparse
 import timeit
+import os
+import pickle
 
 def extract_timePoints( data, selection):
 	new_data = []
@@ -19,6 +21,14 @@ def set_seed(seed: int = 42):
 	if torch.cuda.is_available():
 		torch.cuda.manual_seed(seed)
 		torch.cuda.manual_seed_all(seed)
+
+
+def save_model(file_name, model, model_name, saved_models_dir):
+	if model_name == "ConvTran":
+		torch.save(model, os.path.join(saved_models_dir, file_name + ".pth"))
+	else:
+		with open(os.path.join(saved_models_dir, file_name), 'wb') as f:
+			pickle.dump(model, f)
 
 
 def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  info):

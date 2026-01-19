@@ -140,20 +140,34 @@ def split_dataset(data, labels, validation_ratio, random_state = None):
 	return train_data, train_label, train_indices[0] , val_data, val_label, val_indices[0]
 
 
-################################ DataLoader for hydra and MiniRocket #######################################
+################################ DataLoader for different classifiers #######################################
 
-def dataloader_hydra_miniRocket(dataset, batch_size,only_train=False):
-
+def dataloader_hydra(dataset, batch_size=256,only_train=False):
+	# TODO only hydra case!
+	# TODO can it be more tidy?
 	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
 
 	if not only_train:
 		X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
 
-	data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=False) if only_train else \
-		Dataset(X_train, y_train, batch_size=batch_size, shuffle=True)
+	data_train =	Dataset(X_train, y_train, batch_size=batch_size, shuffle=False) if only_train else \
+					Dataset(X_train, y_train, batch_size=batch_size, shuffle=True)
 
 	# if only_train==False, return also the test set's DataLoader
 	to_return = data_train if only_train else \
 		(data_train,  Dataset(X_test, y_test, batch_size=batch_size, shuffle=False))
+
+	return to_return
+
+
+def dataloader_aeon(dataset, only_train=False):
+
+	data_train =  dataset['train_set']['X'] , dataset['train_set']['y']
+
+	if not only_train:
+		data_test  =        dataset['test_set']['X'], dataset['test_set']['y']
+
+	# if only_train==False, return also the test set's
+	to_return = data_train if only_train else (data_train,  data_test)
 
 	return to_return
