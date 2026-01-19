@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
+from sklearn.linear_model import RidgeClassifierCV
 
 from aeon.classification.convolution_based._hydra import _SparseScaler
 from aeon.transformations.collection.convolution_based import MultiRocket
@@ -37,7 +38,8 @@ class MultiRocketHydra():
 	def __init__(self,
 			hydra_params = {},
 			multiRocket_params = {},
-			n_jobs = -1
+			n_jobs = -1,
+			sklearn_classifier = False
 		):
 		self.hydra = Pipeline(
 			steps=[('hydra',HydraTransformer( n_jobs=n_jobs , **hydra_params)),
@@ -48,7 +50,9 @@ class MultiRocketHydra():
 				   ('scaler',StandardScaler())]
 		)
 
-		self.clf = None	#temporally set to None
+		self.clf = RidgeClassifierCV (alphas=np.logspace(-3, 3, 10)) if sklearn_classifier else None
+		self.sklearn_classifier = sklearn_classifier
+		print(f"sklearn_classifier: {sklearn_classifier}", type(self.clf))
 
 		super().__init__()
 
@@ -65,25 +69,30 @@ class MultiRocketHydra():
 		Xt_multiRocket = self.multiRocket.fit_transform(X)
 		Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
 
-		# Instantiate torch's RidgeClassifier, create a data loader and finally fit the model
-		self.clf = RidgeClassifier(dummy_transform(Xt_total))
-		train_loader = Dataset(Xt_total,y,batch_size=X.shape[0])
-		self.clf.fit(train_loader)
+		if self.sklearn_classifier:
+			self.clf = self.clf.fit(Xt_total,y)
+		else:
+			# Instantiate torch's RidgeClassifier, create a data loader and finally fit the model
+			self.clf = RidgeClassifier(dummy_transform(Xt_total))
+			train_loader = Dataset(Xt_total,y,batch_size=X.shape[0])
+			self.clf.fit(train_loader)
 
 		return self
 
 	def _predict(self,X,y) -> np.ndarray:
 
-		# TODO understand this warning "/home/davide/miniconda3/envs/train_aeon_clfs/lib/python3.13/site-packages/sklearn/pipeline.py:61: FutureWarning: This Pipeline instance is not fitted yet. Call 'fit' with appropriate arguments before using other methods such as transform, predict, etc. This will raise an error in 1.8 instead of the current warning.
 		Xt_hydra  = self.hydra.transform(X)
 		Xt_multiRocket = self.multiRocket.transform(X)
 
 		Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
 
-		test_loader = Dataset(Xt_total,y,batch_size=X.shape[0],shuffle=False)
+		if self.sklearn_classifier:
+			return self.clf.predict(Xt_total)
+		else:
+			test_loader = Dataset(Xt_total,y,batch_size=X.shape[0],shuffle=False)
+			result = self.clf.predict(test_loader)
 
-		return self.clf.predict(test_loader)
-
+		return result
 
 	def score(self,X,y):
 		y_pred = self._predict(X,y)

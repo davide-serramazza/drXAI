@@ -16,11 +16,11 @@ from memory_profiler import  memory_usage
 exceptions = {
     ('MRH' 'AudioMNIST')  : {  'hydra_params' : {'n_kernels' : 2,'n_groups' : 32}, 'multiRocket_params' : {'n_kernels' : 781}},
     ('MRH', 'MosquitoSound')  : {  'hydra_params' : {'n_kernels' : 2}, 'multiRocket_params' : {'n_kernels' : 1532}},
+    ('MRH', 'PAMAP2')  :  { 'sklearn_classifier' : True} ,
     ('ConvTran' , 'CornellWhaleChallenge')  : {  'batch_size' : 8},
     ('ConvTran' , 'FruitFlies')  : {  'batch_size' : 6},
     ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12},
     ('hydra', 'AudioMNIST')  :  { 'batch_size' : 64} ,
-    ('hydra', 'ArticularyWordRecognition')  :  { 'batch_size' : 100}
 }
 
 
@@ -137,7 +137,7 @@ def train(dataset, model_name, return_train_predictions=True):
         (lambda model, X,y : model.score(X,y) )     #aeon classifiers case
 
     # use previously defined functions
-    data_loader = dataloader_f(dataset,**hyper_params)
+    data_loader = dataloader_f(dataset,kwargs=hyper_params)
 
     if model_name in ['ConvTran','hydra']:
         # if torch GPU model, empty cache and reset peak memory stats

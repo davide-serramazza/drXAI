@@ -106,7 +106,7 @@ def to_numeric_labels(y_train, y_test):
 ################################ ConvTran functions #######################################
 
 
-def load_data_ConvTran(dataset , batch_size=32, val_ratio=0.1):
+def load_data_ConvTran(dataset , batch_size=32, val_ratio=0.1,kwargs={}):
 
 	# get different dataset parts
 	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
@@ -142,7 +142,7 @@ def split_dataset(data, labels, validation_ratio, random_state = None):
 
 ################################ DataLoader for different classifiers #######################################
 
-def dataloader_hydra(dataset, batch_size=256,only_train=False):
+def dataloader_hydra(dataset, batch_size=256,only_train=False,kwargs={}):
 	# TODO only hydra case!
 	# TODO can it be more tidy?
 	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
@@ -160,7 +160,7 @@ def dataloader_hydra(dataset, batch_size=256,only_train=False):
 	return to_return
 
 
-def dataloader_aeon(dataset, only_train=False):
+def dataloader_aeon(dataset, only_train=False,kwargs={}):
 
 	data_train =  dataset['train_set']['X'] , dataset['train_set']['y']
 
