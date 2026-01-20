@@ -108,7 +108,7 @@ def to_numeric_labels(y_train, y_test):
 ################################ ConvTran functions #######################################
 
 
-def load_data_ConvTran(dataset , batch_size=32, val_ratio=0.1,kwargs={}):
+def load_data_ConvTran(dataset , val_ratio=0.1,kwargs={}):
 
 	# get different dataset parts
 	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
@@ -120,6 +120,7 @@ def load_data_ConvTran(dataset , batch_size=32, val_ratio=0.1,kwargs={}):
 
 	train_data, train_label, _, val_data, val_label, _ = split_dataset(X_train, y_train,val_ratio)
 
+	batch_size = kwargs['batch_size'] if kwargs.get('batch_size') else 256
 
 	train_loader = DataLoader(dataset=dataset_class(train_data, train_label)
 							  , batch_size=batch_size, shuffle=True, pin_memory=True)
