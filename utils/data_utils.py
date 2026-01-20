@@ -7,6 +7,8 @@ from torch.utils.data import DataLoader
 from aeon.datasets import load_from_ts_file
 from models.ConvTran.utils import dataset_class
 from models.aaltd2024.code.utils import Dataset
+
+
 #from datasets import load_dataset
 
 
@@ -142,10 +144,11 @@ def split_dataset(data, labels, validation_ratio, random_state = None):
 
 ################################ DataLoader for different classifiers #######################################
 
-def dataloader_hydra(dataset, batch_size=256,only_train=False,kwargs={}):
+def dataloader_hydra(dataset ,only_train=False,kwargs={}):
 	# TODO only hydra case!
 	# TODO can it be more tidy?
 	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
+	batch_size = kwargs['batch_size'] if kwargs.get('batch_size') else 256
 
 	if not only_train:
 		X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
