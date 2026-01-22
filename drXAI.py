@@ -1,7 +1,7 @@
 import numpy as np
 import timeit
 
-from utils.backgrounds import smote_avg, class_prototypes_avg
+from utils.backgrounds import class_prototypes_avg
 from tsCaptum.explainers import Feature_Ablation, Shapley_Value_Sampling
 from explanations import extract_selection_avgFirst, extract_selection_absFirst
 
@@ -14,7 +14,7 @@ class drXAI:
 		# asserts also for X_train and y_train?
 		assert len(dataset_X.shape)==3
 		assert len(dataset_y.shape)==1
-		assert explainer_name in [ "Feature_Ablation", "SHAP"]
+		assert explainer_name in [ "FeatureAblation", "SHAP"]
 		assert background_name in ["zeros","SMOTE","Proto"]
 
 		self.__classifier=classifier
@@ -22,8 +22,7 @@ class drXAI:
 
 		self.__X2explain, self.__labels=  dataset_X,dataset_y
 		n_instances, n_channels ,n_time_points = self.__X2explain.shape
-		#n_classes = len(np.unique(self.__labels))
-
+		n_classes = len(np.unique(self.__labels))
 
 		# instantiate the requested background
 
@@ -35,8 +34,6 @@ class drXAI:
 
 		if background_name=="zeros":
 			self.__background= dataset_X[0:1]*0
-		elif background_name=="SMOTE":
-			self.__background= smote_avg(bkg_set_X,bkg_set_y)
 		elif background_name=="Proto":
 			self.__background= class_prototypes_avg(bkg_set_X,bkg_set_y)
 
