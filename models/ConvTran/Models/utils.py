@@ -59,7 +59,7 @@ class SaveBestModel:
         self.n_iteration_early_stop = n_iteration_early_stop
         self.best_epoch = -1
 
-    def __call__(self, current_valid_loss, epoch, model, optimizer, criterion, path):
+    def __call__(self, current_valid_loss, epoch, model, criterion, path , optimizer=None):
 
         if current_valid_loss <= self.best_valid_loss:
 
