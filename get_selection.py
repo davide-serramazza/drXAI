@@ -3,8 +3,6 @@ from utils.data_utils import *
 from utils.trainers import train
 from drXAI import drXAI
 
-#TODO clean models dir e.g. remove tsai.
-#TODO switch back to old ConvTran's train
 
 def main(args):
 
@@ -25,11 +23,12 @@ def main(args):
 	set_seed(random_seed)
 
 	# load datasets
-	for current_dataset in sorted(os.listdir(args.dataset_dir ) ):
+	for f in sorted(os.listdir(args.dataset_dir ) ):
 
-		results_path = os.path.join(results_dir, "_".join( (current_dataset ,"results") ) )+".npz"
-		dataset_dir =  os.path.join(base_path,current_dataset)
-		data = load_datasets(dataset_dir, current_dataset)
+		results_path = os.path.join(results_dir, "_".join( (f ,"results") ) )+".npz"
+		dataset_dir =  os.path.join(base_path,f)
+		data = load_datasets(dataset_dir, f)
+		current_dataset = data['name']
 
 		# create an entry in result's data structure, initialized with 'symbolic label -> numeric label' map
 		results = {   'labels_map' : data['labels_map'] }
@@ -70,7 +69,7 @@ def main(args):
 				key_prefix = 'selected_channels_' if channel_selection else 'selected_timePoints_'
 
 				# hardcoded explainers to be used i.e. the ones included in the study
-				explainers2use = [ "Feature_Ablation", "SHAP"]
+				explainers2use = [ "FeatureAblation", "SHAP"]
 
 				for exp_name in explainers2use:
 					drxai = drXAI(channel_selection=channel_selection, classifier=model,dataset_X=X2explain,
