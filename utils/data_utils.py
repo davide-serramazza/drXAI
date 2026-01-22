@@ -52,7 +52,6 @@ def sample_instances(X , y_true, y_pred, n):
 
 def load_datasets(dataset_dir, current_dataset ):
 
-	# TODO: catch if is a monster dataset based on dataset_dir.count("monster")
 	# load data
 	if current_dataset.count("monster")>0:
 		# CASE FOR MONSTER DATASETS
@@ -72,7 +71,6 @@ def load_datasets(dataset_dir, current_dataset ):
 
 	else:
 		# case for UAE/'TimeSeriesClassification.com'
-		# TODO is this necessary?
 		print(f"Loading UAE dataset {current_dataset}\n")
 		X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TRAIN.ts"))
 		X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TEST.ts"))
@@ -109,6 +107,19 @@ def to_numeric_labels(y_train, y_test):
 
 
 def load_data_ConvTran(dataset , val_ratio=0.1,kwargs={}):
+	"""
+	Loads data for ConvTran model
+
+	:param dataset:		 A dictionary containing 'train_set' and 'test_set'.
+	:param val_ratio: 	The ratio of the training dataset to be used for validation.	Defaults to 0.1.
+	:param kwargs: 		Additional configuration arguments for the data loader, such as 'batch_size'.
+
+	:return: tuple
+	    A tuple containing three DataLoader objects:
+	    - train_loader: DataLoader for the training data.
+	    - val_loader: DataLoader for the validation data.
+	    - test_loader: DataLoader for the testing data.
+	"""
 
 	# get different dataset parts
 	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
@@ -134,6 +145,24 @@ def load_data_ConvTran(dataset , val_ratio=0.1,kwargs={}):
 
 
 def split_dataset(data, labels, validation_ratio, random_state = None):
+	"""
+	Splits a dataset into training and validation subsets based on stratified sampling. This function
+	is used in ConvTran training
+
+	:param data: 				The dataset to be split. Expected to be an array-like object.
+	:param labels: 				The labels associated with the dataset. Should have the same length as `data`.
+	:param validation_ratio: 	The proportion of the dataset to be allocated to the validation subset.
+	:param random_state: 		An optional seed or random state for reproducibility. If not provided, the
+	    randomness will not be deterministic.
+
+	:return: A tuple containing the following:
+	    - train_data: 	The subset of the dataset intended for training.
+	    - train_label: 	The labels corresponding to the training subset.
+	    - train_indices: The indices in the original dataset corresponding to the training subset.
+	    - val_data:		 The subset of the dataset intended for validation.
+	    - val_label: 	The labels corresponding to the validation subset.
+	    - val_indices: 	The indices in the original dataset corresponding to the validation subset.
+	"""
 	splitter = StratifiedShuffleSplit(n_splits=1, test_size=validation_ratio, random_state=random_state) #, random_state=1234)
 	train_indices, val_indices = zip(*splitter.split(X=np.zeros(len(labels)), y=labels))
 
@@ -146,18 +175,27 @@ def split_dataset(data, labels, validation_ratio, random_state = None):
 ################################ DataLoader for different classifiers #######################################
 
 def dataloader_hydra(dataset ,only_train=False,kwargs={}):
-	# TODO only hydra case!
-	# TODO can it be more tidy?
-	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
+	"""
+	Loads and processes data loaders for training and optionally testing datasets for hydra model
+
+	:param dataset: 	A dictionary containing the training and testing datasets.
+	:param only_train: A boolean flag to indicate whether to load only the training DataLoader.
+	    If False, both training and testing DataLoaders are returned. Default is False.
+	:param kwargs: Optional keyword arguments for DataLoader configuration.
+	:return: Returns a DataLoader corresponding to the training set if only_train is True. If
+	    only_train is False, returns a tuple of DataLoaders, corresponding to the training and
+	    testing sets respectively.
+	"""
+	#get the batch size
 	batch_size = kwargs['batch_size'] if kwargs.get('batch_size') else 256
 
-	if not only_train:
-		X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
+	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
+	X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
 
 	data_train =	Dataset(X_train, y_train, batch_size=batch_size, shuffle=False) if only_train else \
-					Dataset(X_train, y_train, batch_size=batch_size, shuffle=True)
+		Dataset(X_train, y_train, batch_size=batch_size, shuffle=True)
 
-	# if only_train==False, return also the test set's DataLoader
+	# if only_train==False, return also test set's DataLoader
 	to_return = data_train if only_train else \
 		(data_train,  Dataset(X_test, y_test, batch_size=batch_size, shuffle=False))
 
