@@ -7,11 +7,17 @@ import os
 import pickle
 
 def extract_timePoints( data, selection):
-	new_data = []
+	# TODO documentation
+
+	train_x, test_x = data['train_set']['X'], data['test_set']['X']
+	new_data_train, new_data_test = [], []
+
 	for intervals in sorted(selection):
 		start, end = intervals.split(':')
-		new_data.append(data [ :,:,int(start):int(end) ] )
-	return np.concatenate(new_data,axis=-1)
+		new_data_train.append(train_x [ :,:,int(start):int(end) ] )
+		new_data_test.append(test_x [ :,:,int(start):int(end) ] )
+
+	return np.concatenate(new_data_train,axis=-1), np.concatenate(new_data_test,axis=-1)
 
 def set_seed(seed: int = 42):
 	"""Set random seeds for reproducibility"""
@@ -40,32 +46,29 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 		if k=='labels_map':
 			continue
 
-		if k=='accuracy':
+		# TDO to remove this???
+		#if k=='accuracy':
 			# prepare an entry in dict for current classifier
-			model_name = info.replace("_","")
-			init_acc = saliency_map_dict[k]
-			if model_name in selection_dict.keys():
+		#	model_name = info.replace("_","")
+		#	init_acc = saliency_map_dict[k]
+		#	if model_name in selection_dict.keys():
 				# select only if in required classifiers!
-				selection_dict[model_name]['initial accuracy']  =  init_acc
+		#		selection_dict[model_name]['initial accuracy']  =  init_acc
 
 		elif k==main_key2find:
 			#k_name = k.replace(key2find,'')
-			model_name, explainer = info.split("_")[1] , "_".join( info.split("_")[2:] )
-			#for model in selection_dict.keys():
-			if model_name in selection_dict.keys():
-				# select only if in required classifiers!
+			_, model_name, background, explainer = info.split("_")
 
-				# TODO separate explainer from background?
-				# TODO extract a function here?
-				if saliency_map_dict[main_key2find]!=[]:
-					selection =saliency_map_dict[main_key2find]
-				else:
-					print(model_name,explainer,"intersection is empty!", end='!\t\t')
-					k1 = key2find+ 'absoluteFirst'  ; k2 = key2find + 'averageFirst'
-					selection = saliency_map_dict[k1] if saliency_map_dict[k1]!=None else saliency_map_dict[k2]
-					print(k1,"as alternative")
+			# TODO extract a function here?
+			if saliency_map_dict[main_key2find]!=[]:
+				selection =saliency_map_dict[main_key2find]
+			else:
+				print(model_name,explainer,"intersection is empty!", end='!\t\t')
+				k1 = key2find+ 'absoluteFirst'  ; k2 = key2find + 'averageFirst'
+				selection = saliency_map_dict[k1] if saliency_map_dict[k1]!=None else saliency_map_dict[k2]
+				print(k1,"as alternative")
 
-				selection_dict[model_name][explainer] = { 'selection':  selection }
+			selection_dict[model_name]['_'.join((explainer,background))] =  selection
 
 
 		elif type(saliency_map_dict[k])==dict :
