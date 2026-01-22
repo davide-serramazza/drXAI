@@ -17,14 +17,22 @@ default_hyperparams = {
 
 def build_ConvTran_model(config,shape, n_labels, device="cuda", verbose=False):
 	"""
-	function to build the ConvTran model
-	:param config: 		dict containing the hyperparameters
-	:param shape: 		data shape
-	:param n_labels: 	number of labels (classes)
-	:param device: 		device to be used
-	:param verbose: 	whether verbose output is required
-	:return: 			UNtrained model
+	Builds a ConvTran model using the provided configuration and parameters.
+
+	This function initializes a ConvTran model by setting up the given configuration,
+	including data shape and the number of labels. It also configures the optimizer
+	and loss module for the model. Finally, the model is moved to the specified computing
+	device.
+
+	:param config: 		Dictionary containing model configuration hyper-parameters.
+	:param shape:	 	Tuple specifying the shape of the data to be processed by the model.
+	:param n_labels: 	Integer representing the number of output labels for the model.
+	:param device: 		Device on which the model will be executed. Defaults to "cuda".
+	:param verbose: 	Boolean flag indicating whether to log detailed information
+	    				during the model creation process. Defaults to False.
+	:return: 			The initialized ConvTran model.
 	"""
+
 	if verbose:
 		logger.info("Creating model ...")
 	config['Data_shape'] = shape
@@ -45,15 +53,18 @@ def build_ConvTran_model(config,shape, n_labels, device="cuda", verbose=False):
 
 
 def train_ConvTran(model,train_loader, hyperparams,val_loader=None,  device='cuda', verbose=False):
-	# TODO update documentation
 	"""
-	function to build and train the ConvTran model
-	:param train_loader: 	DataLoader for training
-	:param device: 			device to train on
-	:param hyperparams: 	dict of hyperparameters to be used during training
-	:param val_loader: 		DataLoader for validation
-	:param verbose: 		whether to have verbose output
-	:return: 				epoch number where best val accuracy was obtained, model
+	Trains the ConvTran model using the specified training and validation data, hyperparameters,
+	and computing device. If a validation loader is provided, it evaluates the model periodically
+	on validation data during training to monitor performance.
+
+	:type model: 			Specific instance to be trained
+	:param train_loader:	DataLoader object providing training data in batches.
+	:param hyperparams: 	Dictionary containing training hyperparameter
+	:param val_loader: 		DataLoader object providing validation data in batches.
+	:param device: 			The computing device to use for training. Defaults is 'cuda'.
+	:param verbose: 		Flag indicating whether to log detailed training progress and information.
+	:return: 				The best model obtained during training loaded from the saved checkpoint file.
 	"""
 
 	if verbose:
@@ -70,9 +81,6 @@ def train_ConvTran(model,train_loader, hyperparams,val_loader=None,  device='cud
 
 	train_runner(hyperparams, model, trainer, val_evaluator=val_evaluator,
 										verbose=verbose)
-	# TODO keep path as constant?
-	# TODO do i need optimizer here?
-	# TODO do i also need start epoch?
-	best_model, optimizer, start_epoch = load_model(model, "tmp/currentConvTran.pth", hyperparams['optimizer'])
+	best_model, optimizer, _ = load_model(model, "tmp/currentConvTran.pth", hyperparams['optimizer'])
 
 	return best_model
