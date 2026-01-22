@@ -12,7 +12,6 @@ from utils.data_utils import load_data_ConvTran, dataloader_hydra, dataloader_ae
 
 from memory_profiler import  memory_usage
 
-#TODO include classifier name!
 exceptions = {
     ('MRH' 'AudioMNIST')  : {  'hydra_params' : {'n_kernels' : 2,'n_groups' : 32}, 'multiRocket_params' : {'n_kernels' : 781}},
     ('MRH', 'MosquitoSound')  : {  'hydra_params' : {'n_kernels' : 2}, 'multiRocket_params' : {'n_kernels' : 1532}},
@@ -31,7 +30,7 @@ def profile_function(func, *args, **kwargs):
 	:param func: 	function to be profiled
 	:param args: 	arguments to be passed to func
 	:param kwargs: 	keyword arguments to be passed to func
-	:return:
+	:return: function's result i.e. trained model and memory usage statistics
 	"""
 
     # Variable to store the result
@@ -62,8 +61,9 @@ def profile_function(func, *args, **kwargs):
 
     return trained_model[0], mem_usage
 
+
+
 def _train_aeon(data,model):
-    # TODO simple lambda instead?
     X_train, y_train = data
     model.fit(X_train, y_train)
 
@@ -72,6 +72,7 @@ def _train_aeon(data,model):
 def _trainer_hydra( data_train, device="cuda"):
     """
     function to train hydra model
+
     :param data_train:  DataLoader for training set
     :param device:      device to train on
     :return:            trained model
@@ -92,15 +93,23 @@ def _trainer_hydra( data_train, device="cuda"):
 
 
 def _trainer_ConvTran( train_loader,val_loader,  kwargs={} ):
-    # TODO do i need this method at all?
-    # TODO update documentation
     """
-    function to train ConvTran model
-    :param train_loader:    DataLoader for training set (the remaining part after train-val split)
-    :param val_loader:      DataLoader for validation set
-    :param device:          device to train on
-    :return:                trained model
+    Train a ConvTran model using the provided training and validation dataloaders, with
+    optional parameter overrides.
+
+    The method configures a ConvTran model based on the default hyperparameters, updates the
+    parameters with the values provided in the `kwargs` dictionary, and trains the model
+    using the given dataloaders. The trained model is then returned for further use or
+    evaluation.
+
+    :param train_loader: The dataloader for the training dataset.
+    :param val_loader: The dataloader for the validation dataset.
+    :param kwargs: Optional dictionary containing parameter overrides. These parameters
+        modify the default ConvTran hyperparameters to customize the model's architecture
+        or training behavior
+    :return: The trained ConvTran model instance
     """
+
 
     for k in kwargs: ConvTran_default_hyperparams[k] = kwargs[k]
 
@@ -114,8 +123,19 @@ def _trainer_ConvTran( train_loader,val_loader,  kwargs={} ):
     return model
 
 
-def train(dataset, model_name, return_train_predictions=True):
-    # TODO redo documentation!
+def train(dataset, model_name, return_train_predictions=False):
+    """
+    Trains a machine learning model specified by the configuration, evaluates its performance, and optionally returns
+    predictions on the training dataset.
+
+    :param dataset:                 The dataset containing training and validation data
+    :param model_name:              Name of the machine learning model to train.
+    :param return_train_predictions: If True, predictions for the training dataset will be returned along with the trained
+        model, accuracy, and memory usage statistics. Defaults to False.
+
+    :return: A tuple containing the trained model, validation accuracy, memory usage statistics (peak and average memory
+        usage in GB), and optionally training data predictions if `return_train_predictions` is True.
+    """
 
     # get optional hyper parameters for specific model/dataset combinations
     key = (model_name,dataset['name'])
@@ -152,14 +172,13 @@ def train(dataset, model_name, return_train_predictions=True):
         # case for aeon classifiers
         model, mem_used = profile_function(trainer_f, data_loader[0])
 
-    # TODO can I use a single statement here?
     accuracy = score_f( model, data_loader[1] ) if model_name in ['ConvTran','hydra'] else score_f(model,*data_loader[1])
 
     to_return = model, accuracy, mem_used
 
     if return_train_predictions:
         # if required, get train set predictions on a NON shuffled dataloader
-        train_data = dataloader_f(dataset,only_train=True,**hyper_params)
+        train_data = dataloader_f(dataset,only_train=True,kwargs=hyper_params)
         train_predictions = model.predict(train_data)
         to_return = (*to_return, train_predictions)
 

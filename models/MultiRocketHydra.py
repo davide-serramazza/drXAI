@@ -13,9 +13,6 @@ from models.aaltd2024.code.ridge import RidgeClassifier
 from models.aaltd2024.code.utils import Dataset
 
 
-#TODO clean and comment
-
-
 class dummy_transform():
 	""""
 	dummy transform i.e. f(X) = X for RidgeClassifier
