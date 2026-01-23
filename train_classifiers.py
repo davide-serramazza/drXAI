@@ -41,34 +41,38 @@ def main(args):
 
 	results = {}
 
-	for f in sorted(os.listdir(args.dataset_dir ) )[1:]:
+	for f in sorted(os.listdir(args.dataset_dir ) ):
 
 		dataset_dir = os.path.join(base_path,f)
 		original_data = load_datasets(dataset_dir, f)
 		current_dataset_name = original_data['name']
 		print("\n\n current loaded dataset is....", original_data['name'])
 
-		selected_features_file = os.path.join(selected_features, current_dataset_name + "_results.npz")
-		selections = get_computed_AI_selections(
-			saliency_map_dict=np.load(selected_features_file,allow_pickle=True)['results'].item(),
-			# TODO remove hydra level from selection_dict????
-			channel_sel=channel_selection,selection_dict={'hydra':{}}, info="") if selected_features else \
-			{'hydra': {'allFeatures':None }}
+		if selected_features:
+			selected_features_file = os.path.join(selected_features, current_dataset_name + "_results.npz")
+			selections = get_computed_AI_selections(
+				saliency_map_dict=np.load(selected_features_file,allow_pickle=True)['results'].item(),
+				# TODO remove hydra level from selection_dict????
+				channel_sel=channel_selection,selection_dict={'hydra':{}}, info="")
+		else:
+			selections = {'hydra': {'allFeatures':None }}
 
 
 		results[current_dataset_name] = {}
 
-		# TODO to remove hydra level from selection_dict????
-		for selection_name, selected_f in selections['hydra'].items():
 
-			data = original_data if selection_name=="allFeatures" else \
+		for model_name in model_names:
+
+			results[current_dataset_name][model_name] = {}
+
+
+			# TODO to remove hydra level from selection_dict????
+			for selection_name, selected_f in selections['hydra'].items():
+
+				data = original_data if selection_name=="allFeatures" else \
 				extract_features(deepcopy(original_data) , selected_f,channel_selection)
 
-			print("current evaluated selection is", selection_name)
-
-			for model_name in model_names:
-
-				results[current_dataset_name][model_name] = {}
+				print("current evaluated selection is", selection_name)
 
 				best_accuracy = -1
 				story = {
@@ -82,7 +86,7 @@ def main(args):
 					print("training",(i+1),"-th model ...")
 					# TODO use **kwargs to say which value is which param?
 					model, current_accuracy, mem_used, training_time = elapsed_time(
-						train,(data, model_name,False) )
+						train,(data, model_name,False ) )
 
 					story['accuracy'].append(current_accuracy)
 					story['average_memory_GB'].append(mem_used['average_memory_GB'])
@@ -94,7 +98,7 @@ def main(args):
 						current_accuracy = best_accuracy
 
 						# save current best model
-						file_name = "_".join((current_dataset_name, model_name, "allFeatures"))
+						file_name = "_".join((current_dataset_name, model_name, selection_name))
 						save_model(file_name, model, model_name, saved_models_dir)
 
 					# delete model and run garbage collector for memory tracking purposes
@@ -102,7 +106,7 @@ def main(args):
 					gc.collect()
 
 				# add current results to results data structure
-				results[current_dataset_name][model_name] = {
+				results[current_dataset_name][model_name][selection_name] = {
 					'accuracy' : np.mean(story['accuracy']),
 					'average_memory_GB' : np.mean(story['average_memory_GB']),
 					'peak_memory_GB' : np.max(story['peak_memory_GB']),
