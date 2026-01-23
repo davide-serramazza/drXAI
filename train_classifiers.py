@@ -1,9 +1,8 @@
-# TODO it has to work with both trainers and trainers_aeon
 #from utils.trainers_aeon import train
 from utils.trainers import train
 from utils.data_utils import load_datasets
 # TODO should I move some functions in other files?
-from utils.helpers import elapsed_time, save_model, str2bool, get_computed_AI_selections, extract_timePoints
+from utils.helpers import *
 
 import argparse
 import os
@@ -12,68 +11,62 @@ import numpy as np
 from copy import deepcopy
 
 
-# TODO move elsewhere
-def extract_features(data, selection,channel_selection):
-	if channel_selection:
-		data['train_set']['X'] = data['train_set']['X'][:,selection,:]
-		data['test_set']['X'] = data['test_set']['X'][:,selection,:]
-	else:
-		data['train_set']['X'], data['test_set']['X'] = extract_timePoints(data,selection)
-
-	return data
-
-
-
 def main(args):
+	# arguments extracting and processing
 	base_path = args.dataset_dir
 	saved_models_dir = args.saved_models_path
 
 	# testing if classifier's list is in the allowed range
-	# TODO can I be more specific?
 	model_names = args.classifiers
 	all_clfs_allowed = np.all( np.array(model_names) in ["HC2" ,"drCIF" ,"MRH" ,"ConvTran","hydra"] )
-	if all_clfs_allowed == False : raise ValueError("invalid classifier names")
+	if all_clfs_allowed == False : raise ValueError("invalid classifier name(s)")
 
 	results_file = args.result_file
 	selected_features = args.selection_dir
 	channel_selection = args.channel_selection
-	# TODO check selected features without channel selection
 
+	# data structure where results will be stored
 	results = {}
 
 	for f in sorted(os.listdir(args.dataset_dir ) ):
 
+		# load data
 		dataset_dir = os.path.join(base_path,f)
 		original_data = load_datasets(dataset_dir, f)
 		current_dataset_name = original_data['name']
 		print("\n\n current loaded dataset is....", original_data['name'])
 
 		if selected_features:
-			selected_features_file = os.path.join(selected_features, current_dataset_name + "_results.npz")
+			# if selection was provided, load the npy array then extract selections and relative names
+			selected_features_file_name = os.path.join(selected_features, current_dataset_name + "_results.npz")
+			selected_features_file = np.load(selected_features_file_name,allow_pickle=True)['results'].item()
+
 			selections = get_computed_AI_selections(
-				saliency_map_dict=np.load(selected_features_file,allow_pickle=True)['results'].item(),
+				saliency_map_dict=selected_features_file,channel_sel=channel_selection,
 				# TODO remove hydra level from selection_dict????
-				channel_sel=channel_selection,selection_dict={'hydra':{}}, info="")
+				selection_dict={'hydra':{}}, info="")
 		else:
+			# train on all features
+			# TODO remove hydra level from selection_dict????
+			# TODO add 'allFeatures' level in this case?
 			selections = {'hydra': {'allFeatures':None }}
 
-
 		results[current_dataset_name] = {}
-
 
 		for model_name in model_names:
 
 			results[current_dataset_name][model_name] = {}
 
-
 			# TODO to remove hydra level from selection_dict????
 			for selection_name, selected_f in selections['hydra'].items():
 
+				# extract features from original data if necessary
 				data = original_data if selection_name=="allFeatures" else \
 				extract_features(deepcopy(original_data) , selected_f,channel_selection)
 
 				print("current evaluated selection is", selection_name)
 
+				# prepare a dataset to save stats on the following training
 				best_accuracy = -1
 				story = {
 					'accuracy' : [],
@@ -86,7 +79,8 @@ def main(args):
 					print("training",(i+1),"-th model ...")
 					# TODO use **kwargs to say which value is which param?
 					model, current_accuracy, mem_used, training_time = elapsed_time(
-						train,(data, model_name,False ) )
+						train, {'dataset':data,'model_name':model_name,'return_train_predictions':False}
+					)
 
 					story['accuracy'].append(current_accuracy)
 					story['average_memory_GB'].append(mem_used['average_memory_GB'])
@@ -123,7 +117,6 @@ if __name__ == '__main__':
 	parser.add_argument("saved_models_path", type=str, help="folder where to save models")
 	parser.add_argument("result_file", type=str, help=".npy file where to store results")
 	parser.add_argument("--classifiers", nargs='+',help="classifier names")
-	#TODO implement this!
 	parser.add_argument("--selection_dir", type=str, default=None, help='feature selection(s) to be used. '
 																		'If not provided all features are used.')
 	parser.add_argument('--channel_selection',type=str2bool, default=False, help="whether to perform "
