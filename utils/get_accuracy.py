@@ -1,64 +1,85 @@
 import numpy as np
-import timeit
 import os
 import torch
 from copy import deepcopy
 
-from  .helpers import extract_timePoints
-from utils.trainers import trainer_dict
+from scipy.stats import hmean
+from .helpers import elapsed_time, extract_timePoints
 
-def get_accuracies(original_data,save_models_path, selections,clf_name, batch_size, initial_accuracies=None,channel_selection=True):
+from .trainers import train
 
-	trainer = trainer_dict[clf_name]
-	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def get_accuracies(original_data,save_models_path, selections,clf_names, batch_sizes,channel_selection=True):
 
-	# get info
-	current_dataset = original_data['name']
-	accuracies = {	'accuracies'	: {}	}
-	current_dataset_dict = accuracies['accuracies']
+	for clf_name, batch_size in  zip(clf_names,batch_sizes):
+		device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+		# get info
+		current_dataset = original_data['name']
 
-	# if the initial accuracy was provided initialize the dictionary using the 'all_channels' (aka initial) accuracy
-	# otherwise the dictionary should be empty
-	current_dataset_dict[clf_name] = {} if initial_accuracies is None or clf_name not in initial_accuracies.keys() else {
-		'initial_accuracy' : initial_accuracies[clf_name]
-	}
+		for name, selection_dict in selections[clf_name].items():
 
-	for exp_name, selection in selections[clf_name].items():
-		# accuracies vector
-		current_dataset_accs = np.zeros(shape=(5,))
+			if name=='initial accuracy':
+				# skip cause this isn't a selection
+				continue
 
-		# get current selected channels
-		data  = deepcopy(original_data)
-		if channel_selection:
-			data['train_set']['X'] = data['train_set']['X'][:,selection,:]
-			data['test_set']['X'] = data['test_set']['X'][:,selection,:]
-		else:
-			data['train_set']['X'] = extract_timePoints( data['train_set']['X'], selection )
-			data['test_set']['X'] = extract_timePoints( data['test_set']['X'], selection )
+			# accuracies vector
+			selection = selection_dict['selection']
 
+			n_orig_features = original_data['train_set']['X'].shape[1] if channel_selection else \
+				original_data['train_set']['X'].shape[2]
 
-		saved_models_path = os.path.join(save_models_path, "_".join((current_dataset,clf_name,exp_name))+".pth")
-		# train 5 times
-		for i in range(5):
-			star_time = timeit.default_timer()
-			current_accuracy , model = trainer(dataset=data, device=device, batch_size=batch_size)
-			total_time = timeit.default_timer() - star_time
-			current_dataset_accs[i] = current_accuracy
+			n_sel_features = len(selection) if channel_selection else \
+				sum([int(s.split(":")[1]) - int(s.split(":")[0]) for s in selection])
 
-			# save best model
-			if max(current_dataset_accs)==current_accuracy:
-				torch.save(model,saved_models_path)
-				training_time = total_time
+			current_dataset_accs, current_dataset_hmeans = np.zeros(shape=(5,)),  np.zeros(shape=(5,))
+
+			# get current selected channels
+			data  = deepcopy(original_data)
+			if channel_selection:
+				data['train_set']['X'] = data['train_set']['X'][:,selection,:]
+				data['test_set']['X'] = data['test_set']['X'][:,selection,:]
+			else:
+				data['train_set']['X'] = extract_timePoints( data['train_set']['X'], selection )
+				data['test_set']['X'] = extract_timePoints( data['test_set']['X'], selection )
 
 
-		# extrac mean, std deviation and best accuracy
-		current_dataset_dict[clf_name][exp_name]	 = 	{
-			'training_time' : training_time,
-			'mean' : np.mean(current_dataset_accs).item(),
-			'std' : np.std(current_dataset_accs).item() ,
-			'best' :  np.max(current_dataset_accs).item(),
-			'channels' : selection
-		}
+			saved_models_path = os.path.join(save_models_path, "_".join((current_dataset,clf_name,name))+".pth")
 
-	return current_dataset_dict
+			# train 5 times measuring avg and std. dev. of metrics
+			for i in range(5):
+				current_accuracy , model, training_time = elapsed_time(
+					train,(data,  device, batch_size, clf_name, False) )
+
+				# saving current accuracy
+				current_dataset_accs[i] = current_accuracy
+				
+				# computing and saving current hmean
+				data_saved = 1 - n_sel_features/n_orig_features
+				current_dataset_hmeans[i] = hmean([data_saved,current_accuracy])
+
+				# save best model
+				if max(current_dataset_accs)==current_accuracy:
+					torch.save(model,saved_models_path)
+
+
+			# extrac mean, std deviation and best accuracy
+			selections[clf_name][name]	 = 	{
+				'training_time' : training_time,
+				'selection' : selection,
+				'accs' : {
+					'mean' : np.mean(current_dataset_accs).item(),
+					'std' : np.std(current_dataset_accs).item() ,
+					'best' :  np.max(current_dataset_accs).item(),
+				},
+				'hmeans' : {
+					'mean' : np.mean(current_dataset_hmeans).item(),
+					'std' : np.std(current_dataset_hmeans).item() ,
+					'best' :  np.max(current_dataset_hmeans).item(),
+				}
+			}
+
+			print(clf_name, name, "evaluation computed!")
+
+		print(clf_name,"evaluation over!")
+
+	return selections

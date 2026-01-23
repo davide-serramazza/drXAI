@@ -90,12 +90,9 @@ class HydraGPU(nn.Module):
 
 class HydraMultivariateGPU(nn.Module):
 
-    def __init__(self, input_length, num_channels, k = 8, g = 64, max_num_channels = 8, seed = None):
+    def __init__(self, input_length, num_channels, k = 8, g = 64, max_num_channels = 8):
 
         super().__init__()
-
-        if seed is not None:
-            torch.manual_seed(seed)
 
         self.k = k # num kernels per group
         self.g = g # num groups

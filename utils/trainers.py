@@ -1,69 +1,184 @@
+from torch.cuda import  empty_cache as empty_gpu_cache
+
+from models.MultiRocketHydra import MultiRocketHydra
+
 from models.aaltd2024.code.hydra_gpu import HydraMultivariateGPU
 from models.aaltd2024.code.ridge import RidgeClassifier
 from models.aaltd2024.code.utils import *
-from models.MyMiniRocket import MyMiniRocket
-from utils.data_utils import load_data_ConvTran
-from models.convTran import build_train_ConvTran
 
-def trainScore_hydra_gpu( dataset , device, batch_size ):
+from models.convTran import train_ConvTran, build_ConvTran_model, default_hyperparams as ConvTran_default_hyperparams
 
-    # get different dataset parts
-    X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
-    X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
+from utils.data_utils import load_data_ConvTran, dataloader_hydra, dataloader_aeon
 
-    data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=True)
-    data_test = Dataset(X_test, y_test, batch_size=batch_size, shuffle=False)
+from memory_profiler import  memory_usage
+
+exceptions = {
+    ('MRH' 'AudioMNIST')  : {  'hydra_params' : {'n_kernels' : 2,'n_groups' : 32}, 'multiRocket_params' : {'n_kernels' : 781}},
+    ('MRH', 'MosquitoSound')  : {  'hydra_params' : {'n_kernels' : 2}, 'multiRocket_params' : {'n_kernels' : 1532}},
+    ('MRH', 'PAMAP2')  :  { 'sklearn_classifier' : True} ,
+    ('ConvTran' , 'CornellWhaleChallenge')  : {  'batch_size' : 8},
+    ('ConvTran' , 'FruitFlies')  : {  'batch_size' : 6},
+    ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12},
+    ('hydra', 'AudioMNIST')  :  { 'batch_size' : 64} ,
+}
+
+
+
+def profile_function(func, *args, **kwargs):
+    """
+	profile a function's memory usage and runtime
+	:param func: 	function to be profiled
+	:param args: 	arguments to be passed to func
+	:param kwargs: 	keyword arguments to be passed to func
+	:return: function's result i.e. trained model and memory usage statistics
+	"""
+
+    # Variable to store the result
+    trained_model = []
+
+    def wrapper():
+        """
+		wrapper that executes func with the right arguments and store the result
+		:return:
+		"""
+        """Wrapper that captures the return value"""
+        result = func(*args, **kwargs)
+        trained_model.append(result)
+
+    # Get memory usage and runtime statistics
+    mem_usage = memory_usage(
+        (wrapper, (), {}),
+        interval=0.2,
+        timeout=1,
+        include_children=True
+    )
+
+    # Calculate memory statistics
+    mem_usage = {
+        'peak_memory_GB': max(mem_usage) / 1024,
+        'average_memory_GB': sum(mem_usage) / len(mem_usage) / 1024,
+    }
+
+    return trained_model[0], mem_usage
+
+
+
+def _train_aeon(data,model):
+    X_train, y_train = data
+    model.fit(X_train, y_train)
+
+    return model
+
+def _trainer_hydra( data_train, device="cuda"):
+    """
+    function to train hydra model
+
+    :param data_train:  DataLoader for training set
+    :param device:      device to train on
+    :return:            trained model
+    """
 
     # extract TS info
-    _ , n_channels, length = X_train.shape
-    n_classes = np.unique(y_train).shape[0]
+    _ , n_channels, length = data_train.shape
+    n_classes =  data_train.classes.shape[0]
 
-    transform = HydraMultivariateGPU(input_length=length, num_channels=n_channels).to(device)
+    # apply the specified transform function i.e.either 'HydraMultivariateGPU' or 'MiniRocketFeatures'
+    transform = HydraMultivariateGPU(length,n_channels).to(device) #model_f(length,n_channels).to(device)
+
+    # train GPU's RidgeClassifier
     model = RidgeClassifier(transform=transform, device=device)
     model.fit(data_train, num_classes=n_classes)
 
-    error_test_set  =   model.score(data_test)
-
-    return   (1 - error_test_set.cpu().numpy().item()), model
+    return model
 
 
-def train_Minirocket_ridge_GPU(  dataset , device, batch_size ):
+def _trainer_ConvTran( train_loader,val_loader,  kwargs={} ):
+    """
+    Train a ConvTran model using the provided training and validation dataloaders, with
+    optional parameter overrides.
 
-    # get different dataset parts
-    X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
-    X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
+    The method configures a ConvTran model based on the default hyperparameters, updates the
+    parameters with the values provided in the `kwargs` dictionary, and trains the model
+    using the given dataloaders. The trained model is then returned for further use or
+    evaluation.
 
-    data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=True)
-    data_test = Dataset(X_test, y_test, batch_size=batch_size, shuffle=False)
-
-    # extract TS info
-    n_samples , n_channels , seq_len = X_train.shape
-    n_classes = np.unique(y_train).shape[0]
-
-    model = MyMiniRocket(n_channels=n_channels,seq_len=seq_len,n_classes=n_classes, device=device)
-    model.train(data_train)
-
-    acc_test_set = model.score(data_test)
-
-    return acc_test_set.item(), model
+    :param train_loader: The dataloader for the training dataset.
+    :param val_loader: The dataloader for the validation dataset.
+    :param kwargs: Optional dictionary containing parameter overrides. These parameters
+        modify the default ConvTran hyperparameters to customize the model's architecture
+        or training behavior
+    :return: The trained ConvTran model instance
+    """
 
 
+    for k in kwargs: ConvTran_default_hyperparams[k] = kwargs[k]
 
-def train_ConvTran( dataset , device, batch_size, verbose=False ):
+    shape, n_labels = train_loader.dataset.feature.shape, np.unique(train_loader.dataset.labels).shape[0]
 
-    train_loader, val_loader, dev_dataset,test_loader = load_data_ConvTran(
-        dataset, batch_size=batch_size)
+    model = build_ConvTran_model(ConvTran_default_hyperparams, shape , n_labels, verbose=False)
 
-    convTran, hyperParams = build_train_ConvTran(train_loader, val_loader, dev_dataset, device=device,
-                                                 save_path=None,verbose=verbose)
-    convTran.eval()
+    train_ConvTran(model,train_loader,ConvTran_default_hyperparams,val_loader,verbose=False)
 
-    accuracy_testSet = convTran.score(test_loader)
+    return model
 
-    return accuracy_testSet.item(), convTran
 
-trainer_dict = {
-    'hydra' 		:	trainScore_hydra_gpu  ,
-    'miniRocket'	:	train_Minirocket_ridge_GPU ,
-    'ConvTran'		:	train_ConvTran
-}
+def train(dataset, model_name, return_train_predictions=False):
+    """
+    Trains a machine learning model specified by the configuration, evaluates its performance, and optionally returns
+    predictions on the training dataset.
+
+    :param dataset:                 The dataset containing training and validation data
+    :param model_name:              Name of the machine learning model to train.
+    :param return_train_predictions: If True, predictions for the training dataset will be returned along with the trained
+        model, accuracy, and memory usage statistics. Defaults to False.
+
+    :return: A tuple containing the trained model, validation accuracy, memory usage statistics (peak and average memory
+        usage in GB), and optionally training data predictions if `return_train_predictions` is True.
+    """
+
+    # get optional hyper parameters for specific model/dataset combinations
+    key = (model_name,dataset['name'])
+    hyper_params = exceptions[key] if key in exceptions else {}
+
+    # set data loaders, trainer and score functions according to current model
+
+    dataloader_f = load_data_ConvTran if model_name=='ConvTran' else \
+        dataloader_hydra if model_name=="hydra" else \
+        dataloader_aeon
+
+    trainer_f = (lambda data: _trainer_hydra(data)) if model_name=='hydra' else \
+        (lambda train_loader, val_loader : _trainer_ConvTran(train_loader,val_loader,hyper_params)) if model_name=='ConvTran' else \
+        ( lambda data : _train_aeon(data,MultiRocketHydra(**hyper_params)) )       # TODO each possible aeon classifiers
+
+
+    score_f = (lambda model, data :(1- model.score(data).cpu().numpy().item()) ) if model_name=='hydra' else \
+        (lambda model, data: model.eval().score(data)) if model_name=='ConvTran' else \
+        (lambda model, X,y : model.score(X,y) )     #aeon classifiers case
+
+    # use previously defined functions
+    data_loader = dataloader_f(dataset,kwargs=hyper_params)
+
+    if model_name in ['ConvTran','hydra']:
+        # if torch GPU model, empty cache and reset peak memory stats
+        empty_gpu_cache(); torch.cuda.synchronize(); torch.cuda.reset_peak_memory_stats()
+        # then train the model and get memory usage
+        model = trainer_f(*data_loader[:-1])
+        mem_used = {
+            'peak_memory_GB': torch.cuda.max_memory_allocated()  / 1024**3,
+            'average_memory_GB': torch.cuda.memory_allocated()  / 1024**3
+        }
+    else:
+        # case for aeon classifiers
+        model, mem_used = profile_function(trainer_f, data_loader[0])
+
+    accuracy = score_f( model, data_loader[1] ) if model_name in ['ConvTran','hydra'] else score_f(model,*data_loader[1])
+
+    to_return = model, accuracy, mem_used
+
+    if return_train_predictions:
+        # if required, get train set predictions on a NON shuffled dataloader
+        train_data = dataloader_f(dataset,only_train=True,kwargs=hyper_params)
+        train_predictions = model.predict(train_data)
+        to_return = (*to_return, train_predictions)
+
+    return to_return

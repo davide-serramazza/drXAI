@@ -12,17 +12,26 @@ def extract_timePoints_features_names(attribution):
 	(samples, channels, timepoints).
 
 	:return:
-	    - feature_relevance: A 1D numpy array containing averaged feature attribution
-	     across samples
-	    - feature_names: A list of strings each of those indicating start and end
-	    position of the corresponding feature.
+		- feature_relevance: A 1D numpy array containing averaged feature attribution
+		 across samples
+		- feature_names: A list of strings each of those indicating start and end
+		position of the corresponding feature.
 	"""
 
-	# identify where the unique values of the saliency map are
-	intervals = np.where(np.diff(attribution[0])!=0)
-	to_gather = np.concatenate( (intervals[1],
-								 np.array( [  attribution.shape[-1] -1  ]) 	#add the last element i.e. the last attribution
-								 )	)
+	# identify where the unique values of the saliency maps are
+	all_intervals = np.where(np.diff(attribution)!=0)
+
+	# finding the index i.e. the training sample having more unique values
+	unique_values, counts = np.unique(all_intervals[0], return_counts=True)
+	max_count_index = np.argmax(counts)
+
+
+	# take its intervals
+	intervals = np.take(all_intervals[-1],	np.where(all_intervals[0]==max_count_index))
+
+	# add last element at the end as rep. of the last feature
+	to_gather = np.append( intervals[0],  attribution.shape[-1] -1 )
+
 	# gather these attributions
 	all_feature_relevance = np.take_along_axis(  attribution[:,0,:],
 												 np.expand_dims(to_gather,axis=0),axis=-1)
@@ -116,8 +125,10 @@ def extract_selection_avgFirst(attribution, channels=False):
 
 def get_elbow_selections(current_data,elbows):
 	return {
-		'elbow_pairwise' : elbows[current_data]['Pairwise'] ,
-		'elbow_sum' : elbows[current_data]['Sum']
+		'elbow_pairwise' : 	{'selection' :
+								   elbows[current_data]['Pairwise'] },
+		'elbow_sum' :  		{'selection' :
+								  elbows[current_data]['Sum']}
 	}
 
 
