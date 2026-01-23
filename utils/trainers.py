@@ -113,7 +113,6 @@ def _trainer_ConvTran( train_loader,val_loader,  kwargs={} ):
 
     for k in kwargs: ConvTran_default_hyperparams[k] = kwargs[k]
 
-
     shape, n_labels = train_loader.dataset.feature.shape, np.unique(train_loader.dataset.labels).shape[0]
 
     model = build_ConvTran_model(ConvTran_default_hyperparams, shape , n_labels, verbose=False)

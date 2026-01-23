@@ -6,6 +6,15 @@ import timeit
 import os
 import pickle
 
+def extract_features(data, selection,channel_selection):
+	if channel_selection:
+		data['train_set']['X'] = data['train_set']['X'][:,selection,:]
+		data['test_set']['X'] = data['test_set']['X'][:,selection,:]
+	else:
+		data['train_set']['X'], data['test_set']['X'] = extract_timePoints(data,selection)
+
+	return data
+
 def extract_timePoints( data, selection):
 	# TODO documentation
 
@@ -46,6 +55,7 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 		if k=='labels_map':
 			continue
 
+	# TODO remove this comments
 		# TDO to remove this???
 		#if k=='accuracy':
 			# prepare an entry in dict for current classifier
@@ -89,7 +99,7 @@ def elapsed_time(f,args):
 	"""
 
 	start_time = timeit.default_timer()
-	returned_vales = f(*args)
+	returned_vales = f(**args)
 	elapsed_time = timeit.default_timer() - start_time
 
 	return *returned_vales, elapsed_time

@@ -36,7 +36,8 @@ def main(args):
 		for model_name,batch_size in zip(model_names,batch_sizes):
 
 			model, current_accuracy,memory_used, y_train_pred,training_time = elapsed_time(
-				train,(data, model_name,True) )
+				train, {'dataset':data,'model_name':model_name,'return_train_predictions':True}
+			)
 
 			print(model_name,"training over! Accuracy is: ",current_accuracy)
 			file_name = "_".join((current_dataset,model_name,"allFeatures"))+".pth"
