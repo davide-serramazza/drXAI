@@ -1,16 +1,17 @@
 import numpy as np
+
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
-from sklearn.linear_model import RidgeClassifierCV
+from sklearn.linear_model import RidgeClassifier, LogisticRegressionCV
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
 
 from aeon.classification.convolution_based._hydra import _SparseScaler
 from aeon.transformations.collection.convolution_based import MultiRocket
 from aeon.transformations.collection.convolution_based._hydra import HydraTransformer
 
-from sklearn.pipeline import Pipeline
-
-from models.aaltd2024.code.ridge import RidgeClassifier
-from models.aaltd2024.code.utils import Dataset
+#from models.aaltd2024.code.ridge import RidgeClassifier
+#from models.aaltd2024.code.utils import Dataset
 
 
 class dummy_transform():
@@ -47,8 +48,9 @@ class MultiRocketHydra():
 				   ('scaler',StandardScaler())]
 		)
 
-		self.clf = RidgeClassifierCV (alphas=np.logspace(-3, 3, 10)) if sklearn_classifier else None
-		self.sklearn_classifier = sklearn_classifier
+		self.clf = 	 LogisticRegressionCV(Cs=2,cv=2, n_jobs=1) #GridSearchCV( estimator=	RidgeClassifier(solver='sparse_cg',max_iter=100,tol=1e-3),
+			#param_grid={'alpha': np.logspace(-3, 3, 2)}, cv=2, n_jobs=n_jobs
+		#)
 
 		super().__init__()
 
@@ -63,15 +65,10 @@ class MultiRocketHydra():
 		# transform data using both hydra and MultiRocket, then concatenate the two representations
 		Xt_hydra  = self.hydra.fit_transform(X)
 		Xt_multiRocket = self.multiRocket.fit_transform(X)
+		print ("concatanating")
 		Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
 
-		if self.sklearn_classifier:
-			self.clf = self.clf.fit(Xt_total,y)
-		else:
-			# Instantiate torch's RidgeClassifier, create a data loader and finally fit the model
-			self.clf = RidgeClassifier(dummy_transform(Xt_total))
-			train_loader = Dataset(Xt_total,y,batch_size=X.shape[0])
-			self.clf.fit(train_loader)
+		self.clf = self.clf.fit(Xt_total,y)
 
 		return self
 
@@ -82,13 +79,8 @@ class MultiRocketHydra():
 
 		Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
 
-		if self.sklearn_classifier:
-			return self.clf.predict(Xt_total)
-		else:
-			test_loader = Dataset(Xt_total,y,batch_size=X.shape[0],shuffle=False)
-			result = self.clf.predict(test_loader)
+		return self.clf.predict(Xt_total)
 
-		return result
 
 	def score(self,X,y):
 		y_pred = self._predict(X,y)
