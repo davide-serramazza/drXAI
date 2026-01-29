@@ -6,7 +6,6 @@ from utils.helpers import *
 
 import argparse
 import os
-import gc
 import numpy as np
 from copy import deepcopy
 
@@ -18,7 +17,7 @@ def main(args):
 
 	# testing if classifier's list is in the allowed range
 	model_names = args.classifiers
-	all_clfs_allowed = np.all( np.array(model_names) in ["HC2" ,"drCIF" ,"MRH" ,"ConvTran","hydra"] )
+	all_clfs_allowed = np.all( [ m in ["HC2" ,"drCIF" ,"MRH" ,"ConvTran","hydra"] for m in model_names ] )
 	if all_clfs_allowed == False : raise ValueError("invalid classifier name(s)")
 
 	results_file = args.result_file
@@ -87,7 +86,7 @@ def main(args):
 					story['peak_memory_GB'].append(mem_used['peak_memory_GB'])
 					story['training_time'].append(training_time)
 
-					print(i,")",model_name,"training over! Accuracy is: ",current_accuracy, "\tTraining time:", training_time)
+					print((i+1),")",model_name,"training over! Accuracy is: ",current_accuracy, "\tTraining time:", training_time)
 					if current_accuracy > best_accuracy:
 						current_accuracy = best_accuracy
 
@@ -96,8 +95,7 @@ def main(args):
 						save_model(file_name, model, model_name, saved_models_dir)
 
 					# delete model and run garbage collector for memory tracking purposes
-					del model
-					gc.collect()
+					clean_memory(model)
 
 				# add current results to results data structure
 				results[current_dataset_name][model_name][selection_name] = {
@@ -109,6 +107,7 @@ def main(args):
 				}
 
 			np.save(results_file, results)
+
 
 
 if __name__ == '__main__':

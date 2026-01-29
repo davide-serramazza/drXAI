@@ -5,6 +5,7 @@ import argparse
 import timeit
 import os
 import pickle
+import gc
 
 def extract_features(data, selection,channel_selection):
 	if channel_selection:
@@ -40,9 +41,12 @@ def set_seed(seed: int = 42):
 
 def save_model(file_name, model, model_name, saved_models_dir):
 	if model_name == "ConvTran":
-		torch.save(model, os.path.join(saved_models_dir, file_name + ".pth"))
+		torch.save(model, os.path.join(saved_models_dir,
+									   "".join((file_name + ".pth"))
+		))
 	else:
-		with open(os.path.join(saved_models_dir, file_name), 'wb') as f:
+		with open(os.path.join(saved_models_dir,
+							   "".join((file_name + ".pkl"))), 'wb') as f:
 			pickle.dump(model, f)
 
 
@@ -103,6 +107,18 @@ def elapsed_time(f,args):
 	elapsed_time = timeit.default_timer() - start_time
 
 	return *returned_vales, elapsed_time
+
+
+def clean_memory(model):
+	"""
+	clear memory by deleting model and running garbage collect on both CPU and GPU
+	:param model:
+	:return:
+	"""
+	del model
+	gc.collect()
+	if torch.cuda.is_available():
+		torch.cuda.empty_cache()
 
 ##################### functions to check arguments #####################
 
