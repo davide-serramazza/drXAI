@@ -210,7 +210,7 @@ def validate(val_evaluator, tensorboard_writer, config, best_metrics, best_value
     return aggr_metrics, best_metrics, best_value
 
 
-def train_runner(config, model, trainer, val_evaluator=None, verbose=False):
+def train_runner(config, model, trainer, tmp_file_name, val_evaluator=None, verbose=False):
     """
     train modified in such a way we are using the whole training set
     After a validation (only used for selecting n_epochs) perform training using the whole train set
@@ -235,7 +235,7 @@ def train_runner(config, model, trainer, val_evaluator=None, verbose=False):
         aggr_metrics_train = trainer.train_epoch(epoch)  # dictionary of aggregate epoch metrics
         aggr_metrics_val, best_metrics, best_value = validate(val_evaluator, tensorboard_writer, config, best_metrics,
                                                               best_value, epoch)
-        _, to_early_stop = save_best_model(aggr_metrics_val['loss'], epoch, model, loss_module, path="tmp/currentConvTran.pth")
+        _, to_early_stop = save_best_model(aggr_metrics_val['loss'], epoch, model, loss_module, path=tmp_file_name)
 
         metrics_names, metrics_values = zip(*aggr_metrics_val.items())
         metrics.append(list(metrics_values))

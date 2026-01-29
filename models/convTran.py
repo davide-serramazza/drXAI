@@ -1,4 +1,5 @@
 import logging
+import os
 
 from .ConvTran.Models.model import model_factory, count_parameters
 from .ConvTran.Models.optimizers import get_optimizer
@@ -79,8 +80,14 @@ def train_ConvTran(model,train_loader, hyperparams,val_loader=None,  device='cud
 									  print_interval=hyperparams['print_interval'], console=hyperparams['console'],
 		print_conf_mat=False) if val_loader is not None else None
 
-	train_runner(hyperparams, model, trainer, val_evaluator=val_evaluator,
-										verbose=verbose)
-	best_model, optimizer, _ = load_model(model, "tmp/currentConvTran.pth", hyperparams['optimizer'])
+	i=0 ; tmp_file_name = "".join( ("tmp/currentConvTran", str(i) ,".pth") )
+	while os.path.exists(tmp_file_name):
+		i+=1 ;tmp_file_name = "".join( ("tmp/currentConvTran", str(i) ,".pth") )
+
+	train_runner(hyperparams, model, trainer,tmp_file_name, val_evaluator=val_evaluator,verbose=verbose)
+
+	best_model, optimizer, _ = load_model(model, tmp_file_name, hyperparams['optimizer'])
+
+	os.remove(tmp_file_name)
 
 	return best_model
