@@ -48,9 +48,9 @@ class MultiRocketHydra():
 				   ('scaler',StandardScaler())]
 		)
 
-		self.clf = 	 LogisticRegressionCV(Cs=2,cv=2, n_jobs=1) #GridSearchCV( estimator=	RidgeClassifier(solver='sparse_cg',max_iter=100,tol=1e-3),
-			#param_grid={'alpha': np.logspace(-3, 3, 2)}, cv=2, n_jobs=n_jobs
-		#)
+		self.clf = GridSearchCV( estimator=	RidgeClassifier(solver='sparse_cg',max_iter=1000,tol=1e-4),
+			param_grid={'alpha': np.logspace(-3, 3, 5)}, cv=5, n_jobs=n_jobs
+		)
 
 		super().__init__()
 
