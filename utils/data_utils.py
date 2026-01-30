@@ -106,7 +106,7 @@ def to_numeric_labels(y_train, y_test):
 ################################ ConvTran functions #######################################
 
 
-def load_data_ConvTran(dataset , val_ratio=0.1,kwargs={}):
+def load_data_ConvTran(dataset , val_ratio=0.1,**kwargs):
 	"""
 	Loads data for ConvTran model
 
@@ -174,7 +174,7 @@ def split_dataset(data, labels, validation_ratio, random_state = None):
 
 ################################ DataLoader for different classifiers #######################################
 
-def dataloader_hydra(dataset ,only_train=False,kwargs={}):
+def dataloader_hydra(dataset ,only_train=False,**kwargs):
 	"""
 	Loads and processes data loaders for training and optionally testing datasets for hydra model
 
@@ -202,14 +202,23 @@ def dataloader_hydra(dataset ,only_train=False,kwargs={}):
 	return to_return
 
 
-def dataloader_aeon(dataset, only_train=False,kwargs={}):
+def dataloader_aeon(dataset,val_ratio= 0.0, **kwargs):
 
 	data_train =  dataset['train_set']['X'] , dataset['train_set']['y']
 
-	if not only_train:
-		data_test  =        dataset['test_set']['X'], dataset['test_set']['y']
+	# split train set into train and val if necessary
+	if val_ratio>0.0:
+		train_data, train_label, train_indices , val_data, val_label, val_indices = split_dataset(
+			data_train[0], data_train[1], val_ratio
+		)
+		data_train = train_data, train_label	; data_val = val_data, val_label
 
-	# if only_train==False, return also the test set's
-	to_return = data_train if only_train else (data_train,  data_test)
+	data_test  =        dataset['test_set']['X'], dataset['test_set']['y']
+
+
+	if val_ratio>0.0:
+		to_return =  data_train, data_val,  data_test
+	else:
+		to_return = data_train, data_test
 
 	return to_return

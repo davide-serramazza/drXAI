@@ -40,7 +40,7 @@ def set_seed(seed: int = 42):
 
 
 def save_model(file_name, model, model_name, saved_models_dir):
-	if model_name == "ConvTran":
+	if model_name in ["ConvTran","hydra","inceptionTime"]:
 		torch.save(model, os.path.join(saved_models_dir,
 									   "".join((file_name + ".pth"))
 		))

@@ -17,7 +17,7 @@ def main(args):
 
 	# testing if classifier's list is in the allowed range
 	model_names = args.classifiers
-	all_clfs_allowed = np.all( [ m in ["HC2" ,"drCIF" ,"MRH" ,"ConvTran","hydra"] for m in model_names ] )
+	all_clfs_allowed = np.all( [ m in ["HC2" ,"drCIF" ,"MRH" ,"ConvTran","hydra","inceptionTime"] for m in model_names ] )
 	if all_clfs_allowed == False : raise ValueError("invalid classifier name(s)")
 
 	results_file = args.result_file
@@ -74,7 +74,7 @@ def main(args):
 					'training_time' : []
 				}
 
-				for i in range(5):
+				for i in range(1):
 					print("training",(i+1),"-th model ...")
 					# TODO use **kwargs to say which value is which param?
 					model, current_accuracy, mem_used, training_time = elapsed_time(

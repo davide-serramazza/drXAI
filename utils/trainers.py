@@ -1,5 +1,3 @@
-from torch.cuda import  empty_cache as empty_gpu_cache
-
 from models.MultiRocketHydra import MultiRocketHydra
 
 from models.aaltd2024.code.hydra_gpu import HydraMultivariateGPU
@@ -7,6 +5,8 @@ from models.aaltd2024.code.ridge import RidgeClassifier
 from models.aaltd2024.code.utils import *
 
 from models.convTran import train_ConvTran, build_ConvTran_model, default_hyperparams as ConvTran_default_hyperparams
+
+from models.inceptionTime.inception_time_pytorch.model import InceptionTime
 
 from utils.data_utils import load_data_ConvTran, dataloader_hydra, dataloader_aeon
 
@@ -92,7 +92,7 @@ def _trainer_hydra( data_train, device="cuda"):
     return model
 
 
-def _trainer_ConvTran( train_loader,val_loader,  kwargs={} ):
+def _trainer_ConvTran( train_loader,val_loader,  **kwargs ):
     """
     Train a ConvTran model using the provided training and validation dataloaders, with
     optional parameter overrides.
@@ -121,6 +121,12 @@ def _trainer_ConvTran( train_loader,val_loader,  kwargs={} ):
 
     return model
 
+def _train_inceptionTime(train_data, val_data, **kwargs):
+    model = InceptionTime(train_data, val_data,filters=32, depth=6, models=5)
+    model.fit(learning_rate=1e-3,batch_size=256,epochs=100)
+
+    return model
+
 
 def train(dataset, model_name, return_train_predictions=False):
     """
@@ -144,23 +150,26 @@ def train(dataset, model_name, return_train_predictions=False):
 
     dataloader_f = load_data_ConvTran if model_name=='ConvTran' else \
         dataloader_hydra if model_name=="hydra" else \
+        (lambda data: dataloader_aeon(data,val_ratio=0.1,**hyper_params)) if model_name=='inceptionTime' else \
         dataloader_aeon
 
     trainer_f = (lambda data: _trainer_hydra(data)) if model_name=='hydra' else \
-        (lambda train_loader, val_loader : _trainer_ConvTran(train_loader,val_loader,hyper_params)) if model_name=='ConvTran' else \
+        (lambda train_loader, val_loader : _trainer_ConvTran(train_loader,val_loader,**hyper_params)) if model_name=='ConvTran' else \
+        (lambda train_data, val_data : _train_inceptionTime(train_data,val_data,**hyper_params)) if model_name=='inceptionTime' else \
         ( lambda data : _train_aeon(data,MultiRocketHydra(**hyper_params)) )       # TODO each possible aeon classifiers
 
 
     score_f = (lambda model, data :(1- model.score(data).cpu().numpy().item()) ) if model_name=='hydra' else \
         (lambda model, data: model.eval().score(data)) if model_name=='ConvTran' else \
+        (lambda model, X,y:  np.sum( model.predict(X)==y ) / y.shape[0] ) if model_name=='inceptionTime' else \
         (lambda model, X,y : model.score(X,y) )     #aeon classifiers case
 
     # use previously defined functions
-    data_loader = dataloader_f(dataset,kwargs=hyper_params)
+    data_loader = dataloader_f(dataset,**hyper_params)
 
-    if model_name in ['ConvTran','hydra']:
+    if model_name in ['ConvTran','hydra','inceptionTime']:
         # if torch GPU model, empty cache and reset peak memory stats
-        empty_gpu_cache(); torch.cuda.synchronize(); torch.cuda.reset_peak_memory_stats()
+        torch.cuda.synchronize(); torch.cuda.reset_peak_memory_stats()
         # then train the model and get memory usage
         model = trainer_f(*data_loader[:-1])
         mem_used = {
