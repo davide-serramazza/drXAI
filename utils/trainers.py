@@ -20,6 +20,8 @@ exceptions = {
     ('ConvTran' , 'FruitFlies')  : {  'batch_size' : 6},
     ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12},
     ('hydra', 'AudioMNIST')  :  { 'batch_size' : 64} ,
+    ('inceptionTime', 'FruitFlies')  :  { 'batch_size' : 128} ,
+    ('inceptionTime', 'AudioMNIST')  :  { 'batch_size' : 16}
 }
 
 
@@ -122,8 +124,9 @@ def _trainer_ConvTran( train_loader,val_loader,  **kwargs ):
     return model
 
 def _train_inceptionTime(train_data, val_data, **kwargs):
+    batch_size = 256 if 'batch_size' not in kwargs else kwargs['batch_size']
     model = InceptionTime(train_data, val_data,filters=32, depth=6, models=5)
-    model.fit(learning_rate=1e-3,batch_size=256,epochs=100)
+    model.fit(learning_rate=1e-3,batch_size=batch_size,epochs=100)
 
     return model
 
@@ -165,7 +168,7 @@ def train(dataset, model_name, return_train_predictions=False):
         (lambda model, X,y : model.score(X,y) )     #aeon classifiers case
 
     # use previously defined functions
-    data_loader = dataloader_f(dataset,**hyper_params)
+    data_loader = dataloader_f(dataset)
 
     if model_name in ['ConvTran','hydra','inceptionTime']:
         # if torch GPU model, empty cache and reset peak memory stats
@@ -180,6 +183,7 @@ def train(dataset, model_name, return_train_predictions=False):
         # case for aeon classifiers
         model, mem_used = profile_function(trainer_f, data_loader[0])
 
+    # TODO can it be more clean??
     accuracy = score_f( model, data_loader[1] ) if model_name in ['ConvTran','hydra'] else score_f(model,*data_loader[1])
 
     to_return = model, accuracy, mem_used
