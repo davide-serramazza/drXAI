@@ -124,9 +124,9 @@ def _trainer_ConvTran( train_loader,val_loader,  **kwargs ):
     return model
 
 def _train_inceptionTime(train_data, val_data, **kwargs):
-    batch_size = 256 if 'batch_size' not in kwargs else kwargs['batch_size']
-    model = InceptionTime(train_data, val_data,filters=32, depth=6, models=5)
-    model.fit(learning_rate=1e-3,batch_size=batch_size,epochs=100)
+    batch_size = 128 if 'batch_size' not in kwargs else kwargs['batch_size']
+    model = InceptionTime(train_data, val_data, batch_size=batch_size, filters=32, depth=6, models=5)
+    model.fit(learning_rate=1e-3,epochs=100)
 
     return model
 

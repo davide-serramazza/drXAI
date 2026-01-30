@@ -2,7 +2,7 @@ import numpy as np
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
-from sklearn.linear_model import RidgeClassifier, LogisticRegressionCV
+from sklearn.linear_model import RidgeClassifier, LogisticRegressionCV, RidgeClassifierCV
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 
@@ -48,8 +48,8 @@ class MultiRocketHydra():
 				   ('scaler',StandardScaler())]
 		)
 
-		self.clf = GridSearchCV( estimator=	RidgeClassifier(solver='sparse_cg',max_iter=1000,tol=1e-4),
-			param_grid={'alpha': np.logspace(-3, 3, 5)}, cv=5, n_jobs=n_jobs
+		self.clf = RidgeClassifierCV(
+			alphas=np.logspace(-3, 3, 10)
 		)
 
 		super().__init__()
@@ -65,7 +65,6 @@ class MultiRocketHydra():
 		# transform data using both hydra and MultiRocket, then concatenate the two representations
 		Xt_hydra  = self.hydra.fit_transform(X)
 		Xt_multiRocket = self.multiRocket.fit_transform(X)
-		print ("concatanating")
 		Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
 
 		self.clf = self.clf.fit(Xt_total,y)

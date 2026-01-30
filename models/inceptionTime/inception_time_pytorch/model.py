@@ -12,6 +12,7 @@ class InceptionTime():
                  filters,
                  depth,
                  models,
+                 batch_size=256,
                  early_stop_counter = 20):
 
         '''
@@ -59,6 +60,7 @@ class InceptionTime():
         self.y_test = torch.from_numpy(y_test).long().to(self.device)
 
         self.early_stop_counter = early_stop_counter
+        self.batch_size = batch_size
 
         # Build and save the models.
         self.models = [
@@ -72,7 +74,6 @@ class InceptionTime():
 
     def fit(self,
             learning_rate,
-            batch_size,
             epochs,
             verbose=True):
 
@@ -97,13 +98,13 @@ class InceptionTime():
         # Generate the training dataset.
         dataset_train = torch.utils.data.DataLoader(
             dataset=torch.utils.data.TensorDataset(self.x_train, self.y_train),
-            batch_size=batch_size,
+            batch_size=self.batch_size,
             shuffle=True
         )
 
         dataset_val = torch.utils.data.DataLoader(
             dataset=torch.utils.data.TensorDataset(self.x_test, self.y_test),
-            batch_size=batch_size,
+            batch_size=self.batch_size,
             shuffle=False
         )
 
@@ -176,13 +177,26 @@ class InceptionTime():
         '''
 
         # Scale the data.
-        x = torch.from_numpy((x - self.mu) / self.sigma).float().to(self.device)
+        x = torch.from_numpy((x - self.mu) / (self.sigma +1e-16 )).float().to(self.device)
 
+        # TODO batch prediction!!
         # Get the predicted probabilities.
+
+        all_probs = []
+
+        # Get probabilities from all models
         with torch.no_grad():
-            p = torch.concat([torch.nn.functional.softmax(model(x), dim=-1).unsqueeze(-1) for model in self.models], dim=-1).mean(-1)
+            for model in self.models:
+                model.eval()  # Set to evaluation mode
+                probs = torch.nn.functional.softmax(model(x), dim=-1)
+                all_probs.append(probs)
+
+        y =  torch.stack(all_probs).mean(dim=0).argmax(dim=-1)
+        #with torch.no_grad():
+        #    preds =[  model(x) for model in self.models ]
+            #p = torch.concat([torch.nn.functional.softmax(model(x), dim=-1).unsqueeze(-1) for model in self.models], dim=-1).mean(-1)
 
         # Get the predicted labels.
-        y = p.argmax(-1).detach().cpu().numpy().flatten()
+        #y = p.argmax(-1).detach().cpu().numpy().flatten()
 
-        return y
+        return y.detach().cpu().numpy()
