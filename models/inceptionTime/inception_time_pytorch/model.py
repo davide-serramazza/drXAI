@@ -191,7 +191,9 @@ class InceptionTime():
                 probs = torch.nn.functional.softmax(model(x), dim=-1)
                 all_probs.append(probs)
 
-        y =  torch.stack(all_probs).mean(dim=0).argmax(dim=-1)
+        # TODO clean here
+        #y =  torch.stack(all_probs).mean(dim=0).argmax(dim=-1)
+        y = torch.stack(all_probs).argmax(dim=-1).mode(dim=0)[0]
         #with torch.no_grad():
         #    preds =[  model(x) for model in self.models ]
             #p = torch.concat([torch.nn.functional.softmax(model(x), dim=-1).unsqueeze(-1) for model in self.models], dim=-1).mean(-1)
