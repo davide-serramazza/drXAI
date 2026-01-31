@@ -100,10 +100,9 @@ class Lambda(torch.nn.Module):
     
     def __init__(self):
         super(Lambda, self).__init__()
-        self.f = torch.mean
-    
+
     def forward(self, x):
-        return self.f(x,dim=-1)
+        return torch.mean(x,dim=-1)
 
 
 class InceptionModel(torch.nn.Module):
@@ -128,7 +127,6 @@ class InceptionModel(torch.nn.Module):
                     filters=filters,
                 )
 
-        #def lambda_function(x): torch.mean(x)
         modules['avg_pool'] = Lambda()
         modules['linear'] = torch.nn.Linear(in_features=4 * filters, out_features=num_classes)
         

@@ -20,8 +20,8 @@ exceptions = {
     ('ConvTran' , 'FruitFlies')  : {  'batch_size' : 6},
     ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12},
     ('hydra', 'AudioMNIST')  :  { 'batch_size' : 64} ,
-    ('inceptionTime', 'FruitFlies')  :  { 'batch_size' : 128} ,
-    ('inceptionTime', 'AudioMNIST')  :  { 'batch_size' : 16}
+    #('inceptionTime', 'FruitFlies')  :  { 'batch_size' : 128} ,
+    #('inceptionTime', 'AudioMNIST')  :  { 'batch_size' : 16}
 }
 
 
@@ -125,8 +125,8 @@ def _trainer_ConvTran( train_loader,val_loader,  **kwargs ):
 
 def _train_inceptionTime(train_data, val_data, **kwargs):
     batch_size = 256 if 'batch_size' not in kwargs else kwargs['batch_size']
-    model = InceptionTime(train_data, val_data, batch_size=16, filters=32, depth=6, models=5)
-    model.fit(learning_rate=1e-3,epochs=10)
+    model = InceptionTime(train_data, val_data, batch_size=batch_size, filters=32, depth=6, models=5)
+    model.fit(learning_rate=1e-3,epochs=100)
 
     return model
 
