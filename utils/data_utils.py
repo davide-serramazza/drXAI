@@ -77,6 +77,7 @@ def load_datasets(dataset_dir, current_dataset ):
 			y_train = f['train/y'][:]
 			X_test = f['test/X'][:]
 			y_test = f['test/y'][:]
+			current_dataset = current_dataset.replace(".h5","")
 
 	y_train, y_test,labels_map = to_numeric_labels(y_train, y_test)
 

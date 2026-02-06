@@ -15,6 +15,7 @@ from memory_profiler import  memory_usage
 exceptions = {
     ('MRH' 'AudioMNIST')  : { 'batch_size': 2048},
     ('MRH', 'MosquitoSound')  : { 'batch_size':8192,'hydra_params' : {'n_kernels' : 4,'n_groups' : 32}, 'multiRocket_params' : {'n_kernels' : 900}},
+    ('ConvTran' , 'h5_synth_data_small') : {'batch_size' : 128},
     ('ConvTran' , 'CornellWhaleChallenge')  : {  'batch_size' : 8},
     ('ConvTran' , 'FruitFlies')  : {  'batch_size' : 6},
     ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12},
@@ -167,7 +168,7 @@ def train(dataset, model_name, return_train_predictions=False):
         (lambda model, X,y : model.score(X,y) )     #aeon classifiers case
 
     # use previously defined functions
-    data_loader = dataloader_f(dataset)
+    data_loader = dataloader_f(dataset,**hyper_params)
 
     if model_name in ['ConvTran','hydra','inceptionTime']:
         # if torch GPU model, empty cache and reset peak memory stats
