@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import h5py
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -70,11 +71,12 @@ def load_datasets(dataset_dir, current_dataset ):
 		X_train = np.concatenate( [ X[folds[i]] for i in range(4)] ) ; y_train =  np.concatenate( [ y[folds[i]] for i in range(4)] )
 
 	else:
-		# case for UAE/'TimeSeriesClassification.com'
-		print(f"Loading UAE dataset {current_dataset}\n")
-		X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TRAIN.ts"))
-		X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TEST.ts"))
-
+		# case for synthetic .h5 files
+		with h5py.File(dataset_dir, 'r') as f:
+			X_train = f['train/X'][:]
+			y_train = f['train/y'][:]
+			X_test = f['test/X'][:]
+			y_test = f['test/y'][:]
 
 	y_train, y_test,labels_map = to_numeric_labels(y_train, y_test)
 

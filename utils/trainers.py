@@ -13,9 +13,8 @@ from utils.data_utils import load_data_ConvTran, dataloader_hydra, dataloader_ae
 from memory_profiler import  memory_usage
 
 exceptions = {
-    ('MRH' 'AudioMNIST')  : {  'hydra_params' : {'n_kernels' : 2,'n_groups' : 32}, 'multiRocket_params' : {'n_kernels' : 781}},
-    ('MRH', 'MosquitoSound')  : {  'hydra_params' : {'n_kernels' : 2}, 'multiRocket_params' : {'n_kernels' : 1532}},
-    ('MRH', 'PAMAP2')  :  { 'sklearn_classifier' : True} ,
+    ('MRH' 'AudioMNIST')  : { 'batch_size': 2048},
+    ('MRH', 'MosquitoSound')  : { 'batch_size':8192,'hydra_params' : {'n_kernels' : 4,'n_groups' : 32}, 'multiRocket_params' : {'n_kernels' : 900}},
     ('ConvTran' , 'CornellWhaleChallenge')  : {  'batch_size' : 8},
     ('ConvTran' , 'FruitFlies')  : {  'batch_size' : 6},
     ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12},

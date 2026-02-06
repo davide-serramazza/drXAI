@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
@@ -9,21 +10,11 @@ from sklearn.pipeline import Pipeline
 from aeon.classification.convolution_based._hydra import _SparseScaler
 from aeon.transformations.collection.convolution_based import MultiRocket
 from aeon.transformations.collection.convolution_based._hydra import HydraTransformer
+from torch import Tensor
+
 
 #from models.aaltd2024.code.ridge import RidgeClassifier
 #from models.aaltd2024.code.utils import Dataset
-
-
-class dummy_transform():
-	""""
-	dummy transform i.e. f(X) = X for RidgeClassifier
-	"""
-	def __init__(self, X):
-		self.X = X
-		self.num_features = X.shape[1]
-
-	def __call__(self, *args, **kwargs):
-		return args[0]
 
 
 class MultiRocketHydra():
@@ -37,22 +28,34 @@ class MultiRocketHydra():
 			hydra_params = {},
 			multiRocket_params = {},
 			n_jobs = -1,
-			sklearn_classifier = False
+			batch_size = -1
 		):
-		self.hydra = Pipeline(
-			steps=[('hydra',HydraTransformer( n_jobs=n_jobs , **hydra_params)),
-				   ('scaler',_SparseScaler())]
-		)
 		self.multiRocket = Pipeline(
 			steps=[('multiRocket',MultiRocket( n_jobs=n_jobs, **multiRocket_params)),
 				   ('scaler',StandardScaler())]
 		)
 
+		self.hydra = HydraTransformer( n_jobs=n_jobs , **hydra_params)
+		self.hydra_scaler = _SparseScaler()
+
+
 		self.clf = RidgeClassifierCV(
 			alphas=np.logspace(-3, 3, 10)
 		)
 
+		self.batch_size = batch_size
+
 		super().__init__()
+
+
+	def _batched_hydra(self, X) -> Tensor:
+		Xt_hydra = []
+		n_batches = int(np.ceil(X.shape[0] / self.batch_size))
+		for i in range(n_batches):
+			current_x = X[i * self.batch_size: min((i + 1) * self.batch_size, X.shape[0])]
+			Xt_hydra.append(self.hydra.transform(current_x))
+		Xt_hydra = torch.cat(Xt_hydra, axis=0)
+		return Xt_hydra
 
 	def fit(self,X,y):
 		"""
@@ -62,18 +65,34 @@ class MultiRocketHydra():
 		:return:
 		"""
 
-		# transform data using both hydra and MultiRocket, then concatenate the two representations
-		Xt_hydra  = self.hydra.fit_transform(X)
 		Xt_multiRocket = self.multiRocket.fit_transform(X)
+
+		# hydra transform according to batch size
+		if self.batch_size == -1:
+			Xt_hydra  = self.hydra.fit_transform(X)
+		else:
+			# initialize hydra with one sample
+			self.hydra.fit(X[ :1 , : , :])
+			Xt_hydra = self._batched_hydra(X)
+
+		Xt_hydra = self.hydra_scaler.fit_transform(Xt_hydra).numpy()
+
 		Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
 
 		self.clf = self.clf.fit(Xt_total,y)
 
 		return self
 
+
 	def _predict(self,X,y) -> np.ndarray:
 
-		Xt_hydra  = self.hydra.transform(X)
+		if self.batch_size == -1:
+			Xt_hydra  = self.hydra.transform(X)
+		else:
+			Xt_hydra = self._batched_hydra(X)
+
+		Xt_hydra = self.hydra_scaler.transform(Xt_hydra).numpy()
+
 		Xt_multiRocket = self.multiRocket.transform(X)
 
 		Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)

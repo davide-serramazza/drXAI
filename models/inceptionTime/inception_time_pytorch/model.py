@@ -121,7 +121,7 @@ class InceptionTime():
             best_loss = np.inf ; best_accuracy = 0 ; non_improvement_count = 0
 
             # Train the model.
-            print(f'Training model {m + 1} on {self.device}.')
+            print(f'Training {m + 1}-th ensemble sub-model on {self.device}.')
             self.models[m].train(True)
             for epoch in range(epochs):
                 for features, target in dataset_train:

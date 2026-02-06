@@ -63,7 +63,7 @@ def main(args):
 				data = original_data if selection_name=="allFeatures" else \
 				extract_features(deepcopy(original_data) , selected_f,channel_selection)
 
-				print("current evaluated selection is", selection_name)
+				print("current evaluated selection is", selection_name, "of dataset", current_dataset_name)
 
 				# prepare a dataset to save stats on the following training
 				best_accuracy = -1
@@ -74,7 +74,7 @@ def main(args):
 					'training_time' : []
 				}
 
-				for i in range(5):
+				for i in range(3):
 					print("training",(i+1),"-th model ...")
 					# TODO use **kwargs to say which value is which param?
 					model, current_accuracy, mem_used, training_time = elapsed_time(
