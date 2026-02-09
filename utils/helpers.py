@@ -73,6 +73,9 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 			#k_name = k.replace(key2find,'')
 			_, model_name, background, explainer = info.split("_")
 
+			if model_name not in selection_dict.keys():
+				selection_dict[model_name] = {}
+
 			# TODO extract a function here?
 			if saliency_map_dict[main_key2find]!=[]:
 				selection =saliency_map_dict[main_key2find]
@@ -82,7 +85,7 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 				selection = saliency_map_dict[k1] if saliency_map_dict[k1]!=None else saliency_map_dict[k2]
 				print(k1,"as alternative")
 
-			selection_dict[model_name]['_'.join((explainer,background))] =  selection
+			selection_dict[model_name] ['_'.join((explainer,background))] =  selection
 
 
 		elif type(saliency_map_dict[k])==dict :

@@ -43,12 +43,12 @@ def main(args):
 			selections = get_computed_AI_selections(
 				saliency_map_dict=selected_features_file,channel_sel=channel_selection,
 				# TODO remove hydra level from selection_dict????
-				selection_dict={'hydra':{}}, info="")
+				selection_dict={}, info="")
 		else:
 			# train on all features
 			#TODO remove hydra level from selection_dict????
 			#TODO add 'allFeatures' level in this case?
-			selections = {'hydra': {'allFeatures':None }}
+			selections = {'allFeatures':None }
 
 		results[current_dataset_name] = {}
 
@@ -56,8 +56,9 @@ def main(args):
 
 			results[current_dataset_name][model_name] = {}
 
+			selection_model = list(selections.keys())[0]
 			# TODO to remove hydra level from selection_dict????
-			for selection_name, selected_f in selections['hydra'].items():
+			for selection_name, selected_f in selections[selection_model].items():
 
 				# extract features from original data if necessary
 				data = original_data if selection_name=="allFeatures" else \
