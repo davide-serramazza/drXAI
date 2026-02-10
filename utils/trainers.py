@@ -20,7 +20,7 @@ exceptions = {
     ('ConvTran' , 'FruitFlies')  : {  'batch_size' : 6},
     ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12},
     ('hydra', 'AudioMNIST')  :  { 'batch_size' : 64} ,
-    #('inceptionTime', 'FruitFlies')  :  { 'batch_size' : 128} ,
+    ('inceptionTime', 'EigenWorms')  :  { 'batch_size' : 128} ,
     #('inceptionTime', 'AudioMNIST')  :  { 'batch_size' : 16}
 }
 
@@ -126,7 +126,7 @@ def _trainer_ConvTran( train_loader,val_loader,  **kwargs ):
 def _train_inceptionTime(train_data, val_data, **kwargs):
     batch_size = 256 if 'batch_size' not in kwargs else kwargs['batch_size']
     model = InceptionTime(train_data, val_data, batch_size=batch_size, filters=32, depth=6, models=5)
-    model.fit(learning_rate=1e-3,epochs=100)
+    model.fit(learning_rate=1e-3,epochs=100,verbose=False)
 
     return model
 
@@ -153,7 +153,7 @@ def train(dataset, model_name, return_train_predictions=False):
 
     dataloader_f = load_data_ConvTran if model_name=='ConvTran' else \
         dataloader_hydra if model_name=="hydra" else \
-        (lambda data: dataloader_aeon(data,val_ratio=0.1,**hyper_params)) if model_name=='inceptionTime' else \
+        (lambda data,hyper_params: dataloader_aeon(data,kwargs=hyper_params,val_ratio=0.1)) if model_name=='inceptionTime' else \
         dataloader_aeon
 
     trainer_f = (lambda data: _trainer_hydra(data)) if model_name=='hydra' else \
@@ -168,7 +168,7 @@ def train(dataset, model_name, return_train_predictions=False):
         (lambda model, X,y : model.score(X,y) )     #aeon classifiers case
 
     # use previously defined functions
-    data_loader = dataloader_f(dataset,**hyper_params)
+    data_loader = dataloader_f(dataset,hyper_params)
 
     if model_name in ['ConvTran','hydra','inceptionTime']:
         # if torch GPU model, empty cache and reset peak memory stats

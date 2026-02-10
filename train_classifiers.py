@@ -48,7 +48,7 @@ def main(args):
 			# train on all features
 			#TODO remove hydra level from selection_dict????
 			#TODO add 'allFeatures' level in this case?
-			selections = {'allFeatures':None }
+			selections = {'allFeatures': {'allFeatures':None } }
 
 		results[current_dataset_name] = {}
 

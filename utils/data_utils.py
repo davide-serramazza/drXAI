@@ -1,4 +1,6 @@
 import os
+
+import aeon.datasets
 import numpy as np
 import h5py
 
@@ -70,7 +72,7 @@ def load_datasets(dataset_dir, current_dataset ):
 		X_test = X[folds[-1]]	; y_test = y[folds[-1]]
 		X_train = np.concatenate( [ X[folds[i]] for i in range(4)] ) ; y_train =  np.concatenate( [ y[folds[i]] for i in range(4)] )
 
-	else:
+	elif current_dataset.endswith(".h5"):
 		# case for synthetic .h5 files
 		with h5py.File(dataset_dir, 'r') as f:
 			X_train = f['train/X'][:]
@@ -78,6 +80,9 @@ def load_datasets(dataset_dir, current_dataset ):
 			X_test = f['test/X'][:]
 			y_test = f['test/y'][:]
 			current_dataset = current_dataset.replace(".h5","")
+	else:
+		X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, "_".join((current_dataset, "TRAIN.ts"  ))  ))
+		X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, "_".join((current_dataset, "TEST.ts"  ))  ))
 
 	y_train, y_test,labels_map = to_numeric_labels(y_train, y_test)
 
