@@ -155,10 +155,12 @@ class InceptionTime():
                     non_improvement_count += 1
 
                 if non_improvement_count == self.early_stop_counter:
-                    print('Early stop at epoch: {}, best loss: {:,.6f}, best accuracy: {:.6f}'.format(1 + epoch,
+                    print('Early stop at epoch: {}, best loss: {:,.3f}, best accuracy: {:.3f}'.format(1 + epoch,
                                                                                                       best_loss, best_accuracy))
                     break
 
+            print('Training over, best loss: {:,.3f}, best accuracy: {:.3f}'.format(
+                                                                                    best_loss, best_accuracy))
             self.models[m] = torch.load(f'tmp/tmp_inceptionTime_{m + 1}.pth', map_location=self.device,
                                                 weights_only=False)
             self.models[m].train(False)

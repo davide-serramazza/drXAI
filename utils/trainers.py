@@ -13,7 +13,7 @@ from utils.data_utils import load_data_ConvTran, dataloader_hydra, dataloader_ae
 from memory_profiler import  memory_usage
 
 exceptions = {
-    ('MRH' 'AudioMNIST')  : { 'batch_size': 2048},
+    ('MRH', 'AudioMNIST')  : { 'batch_size': 2048},
     ('MRH', 'MosquitoSound')  : { 'batch_size':8192,'hydra_params' : {'n_kernels' : 4,'n_groups' : 32}, 'multiRocket_params' : {'n_kernels' : 900}},
     ('ConvTran' , 'h5_synth_data_small') : {'batch_size' : 128},
     ('ConvTran' , 'CornellWhaleChallenge')  : {  'batch_size' : 8},
@@ -21,7 +21,6 @@ exceptions = {
     ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12},
     ('hydra', 'AudioMNIST')  :  { 'batch_size' : 64} ,
     ('inceptionTime', 'EigenWorms')  :  { 'batch_size' : 128} ,
-    #('inceptionTime', 'AudioMNIST')  :  { 'batch_size' : 16}
 }
 
 
@@ -151,15 +150,16 @@ def train(dataset, model_name, return_train_predictions=False):
 
     # set data loaders, trainer and score functions according to current model
 
+    # TODO use dictionarieS rather than these!
     dataloader_f = load_data_ConvTran if model_name=='ConvTran' else \
         dataloader_hydra if model_name=="hydra" else \
-        (lambda data,hyper_params: dataloader_aeon(data,kwargs=hyper_params,val_ratio=0.1)) if model_name=='inceptionTime' else \
+        (lambda data,**kwargs: dataloader_aeon(data,val_ratio=0.1,**hyper_params)) if model_name=='inceptionTime' else \
         dataloader_aeon
 
     trainer_f = (lambda data: _trainer_hydra(data)) if model_name=='hydra' else \
-        (lambda train_loader, val_loader : _trainer_ConvTran(train_loader,val_loader,**hyper_params)) if model_name=='ConvTran' else \
-        (lambda train_data, val_data : _train_inceptionTime(train_data,val_data,**hyper_params)) if model_name=='inceptionTime' else \
-        ( lambda data : _train_aeon(data,MultiRocketHydra(**hyper_params)) )       # TODO each possible aeon classifiers
+        (lambda train_loader, val_loader,**kwargs : _trainer_ConvTran(train_loader,val_loader,**kwargs)) if model_name=='ConvTran' else \
+        (lambda train_data, val_data, **kwargs : _train_inceptionTime(train_data,val_data,val_ratio=0.1,**kwargs)) if model_name=='inceptionTime' else \
+        ( lambda data, **kwargs : _train_aeon(data,MultiRocketHydra(kwargs)) )       # TODO each possible aeon classifiers
 
 
     score_f = (lambda model, data :(1- model.score(data).cpu().numpy().item()) ) if model_name=='hydra' else \
@@ -168,7 +168,7 @@ def train(dataset, model_name, return_train_predictions=False):
         (lambda model, X,y : model.score(X,y) )     #aeon classifiers case
 
     # use previously defined functions
-    data_loader = dataloader_f(dataset,hyper_params)
+    data_loader = dataloader_f(dataset,**hyper_params)
 
     if model_name in ['ConvTran','hydra','inceptionTime']:
         # if torch GPU model, empty cache and reset peak memory stats
