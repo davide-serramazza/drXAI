@@ -1,6 +1,7 @@
 from utils.helpers import *
 from utils.data_utils import *
 from utils.trainers import train
+from utils.load_datasets import load_datasets
 from drXAI import drXAI
 
 

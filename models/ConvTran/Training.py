@@ -227,7 +227,7 @@ def train_runner(config, model, trainer, tmp_file_name, val_evaluator=None, verb
     best_metrics = {}
     best_loss , best_n_epochs = np.inf , -1
     start_time = timeit.default_timer()
-    save_best_model = utils.SaveBestModel()
+    save_best_model = utils.SaveBestModel(n_iteration_early_stop=config['early_stop_counter'])
 
     epoch = config['epochs']
     for epoch in tqdm(range(start_epoch + 1, epochs + 1), desc='Training Epoch', leave=False):

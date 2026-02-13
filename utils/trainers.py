@@ -14,13 +14,20 @@ from memory_profiler import  memory_usage
 
 exceptions = {
     ('MRH', 'AudioMNIST')  : { 'batch_size': 2048},
-    ('MRH', 'MosquitoSound')  : { 'batch_size':8192,'hydra_params' : {'n_kernels' : 4,'n_groups' : 32}, 'multiRocket_params' : {'n_kernels' : 900}},
+    ('MRH', 'MosquitoSound')  : { 'batch_size':2048, 'multiRocket_params' : {'n_kernels' : 3125}},
     ('ConvTran' , 'h5_synth_data_small') : {'batch_size' : 128},
     ('ConvTran' , 'CornellWhaleChallenge')  : {  'batch_size' : 8},
     ('ConvTran' , 'FruitFlies')  : {  'batch_size' : 6},
     ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12},
     ('hydra', 'AudioMNIST')  :  { 'batch_size' : 64} ,
     ('inceptionTime', 'EigenWorms')  :  { 'batch_size' : 128} ,
+
+    ('ConvTran' , 'arc_loss') : {  'batch_size' : 64},
+    ('ConvTran' ,'RightWhaleCalls') : {  'batch_size' : 4},
+    ('inceptionTime' ,'RightWhaleCalls') : {  'batch_size' : 128},
+    ('inceptionTime' , 'arc_loss') : {  'batch_size' : 128},
+    ('hydra', 'AudioMNIST')  :  { 'batch_size' : 64} ,
+    ('inceptionTime', 'EigenWorms')  :  { 'batch_size' : 128}
 }
 
 
@@ -123,9 +130,20 @@ def _trainer_ConvTran( train_loader,val_loader,  **kwargs ):
     return model
 
 def _train_inceptionTime(train_data, val_data, **kwargs):
+    """
+    Trains an InceptionTime model using the given training and validation data. The method initializes
+    the model with default parameters, unless overridden via keyword arguments.
+
+    :param train_data: The training dataset used to train the InceptionTime model.
+    :param val_data: The validation dataset used to validate the InceptionTime model.
+    :param kwargs: Optional keyword arguments that can be used to customize model parameters:
+    :return: A trained instance of the InceptionTime model.
+    """
     batch_size = 256 if 'batch_size' not in kwargs else kwargs['batch_size']
-    model = InceptionTime(train_data, val_data, batch_size=batch_size, filters=32, depth=6, models=5)
-    model.fit(learning_rate=1e-3,epochs=100,verbose=False)
+    early_stop_counter=20 if 'early_stop_counter' not in kwargs else kwargs['early_stop_counter']
+    model = InceptionTime(train_data, val_data, batch_size=batch_size, filters=32, depth=6, models=5,
+                          early_stop_counter=early_stop_counter)
+    model.fit(learning_rate=1e-3,epochs=100,verbose=True)
 
     return model
 
@@ -149,48 +167,52 @@ def train(dataset, model_name, return_train_predictions=False):
     hyper_params = exceptions[key] if key in exceptions else {}
 
     # set data loaders, trainer and score functions according to current model
+    dataloader_f = {
+        'ConvTran' : load_data_ConvTran,
+        'hydra' : dataloader_hydra,
+        'MRH' : dataloader_aeon,
+        'inceptionTime' : lambda data,**kwargs: dataloader_aeon(data,val_ratio=0.1,**hyper_params)
+    }
 
-    # TODO use dictionarieS rather than these!
-    dataloader_f = load_data_ConvTran if model_name=='ConvTran' else \
-        dataloader_hydra if model_name=="hydra" else \
-        (lambda data,**kwargs: dataloader_aeon(data,val_ratio=0.1,**hyper_params)) if model_name=='inceptionTime' else \
-        dataloader_aeon
+    trainer_f = {
+        'ConvTran' : lambda train_loader, val_loader,**kwargs : _trainer_ConvTran(train_loader,val_loader,**kwargs),
+        'hydra' :lambda data, **kwargs : _trainer_hydra(data),
+        'MRH' :  lambda data, **kwargs : _train_aeon(data,MultiRocketHydra(**kwargs)),
+        'inceptionTime' : lambda train_data, val_data, **kwargs : _train_inceptionTime(train_data,val_data,
+                                                                                       val_ratio=0.1,**kwargs)
+    }
 
-    trainer_f = (lambda data: _trainer_hydra(data)) if model_name=='hydra' else \
-        (lambda train_loader, val_loader,**kwargs : _trainer_ConvTran(train_loader,val_loader,**kwargs)) if model_name=='ConvTran' else \
-        (lambda train_data, val_data, **kwargs : _train_inceptionTime(train_data,val_data,val_ratio=0.1,**kwargs)) if model_name=='inceptionTime' else \
-        ( lambda data, **kwargs : _train_aeon(data,MultiRocketHydra(kwargs)) )       # TODO each possible aeon classifiers
-
-
-    score_f = (lambda model, data :(1- model.score(data).cpu().numpy().item()) ) if model_name=='hydra' else \
-        (lambda model, data: model.eval().score(data)) if model_name=='ConvTran' else \
-        (lambda model, X,y:  np.sum( model.predict(X)==y ) / y.shape[0] ) if model_name=='inceptionTime' else \
-        (lambda model, X,y : model.score(X,y) )     #aeon classifiers case
+    score_f = {
+        'ConvTran' : lambda model, data :model.eval().score(data),
+        'hydra' : lambda model, data :(1- model.score(data).cpu().numpy().item()),
+        'MRH' : lambda model, X,y : model.score(X,y),
+        'inceptionTime' : lambda model, X,y:  np.sum( model.predict(X)==y ) / y.shape[0]
+    }
 
     # use previously defined functions
-    data_loader = dataloader_f(dataset,**hyper_params)
+    data_loader = dataloader_f[model_name](dataset,**hyper_params)
 
     if model_name in ['ConvTran','hydra','inceptionTime']:
         # if torch GPU model, empty cache and reset peak memory stats
         torch.cuda.synchronize(); torch.cuda.reset_peak_memory_stats()
         # then train the model and get memory usage
-        model = trainer_f(*data_loader[:-1])
+        model = trainer_f[model_name] (*data_loader[:-1],**hyper_params)
         mem_used = {
             'peak_memory_GB': torch.cuda.max_memory_allocated()  / 1024**3,
             'average_memory_GB': torch.cuda.memory_allocated()  / 1024**3
         }
     else:
         # case for aeon classifiers
-        model, mem_used = profile_function(trainer_f, data_loader[0])
+        model, mem_used = profile_function(trainer_f[model_name], data_loader[0],**hyper_params)
 
-    # TODO can it be more clean??
-    accuracy = score_f( model, data_loader[1] ) if model_name in ['ConvTran','hydra'] else score_f(model,*data_loader[1])
+    accuracy = score_f[model_name]( model, data_loader[-1] ) if model_name in ['ConvTran','hydra'] \
+        else score_f[model_name](model, *data_loader[-1])
 
     to_return = model, accuracy, mem_used
 
     if return_train_predictions:
         # if required, get train set predictions on a NON shuffled dataloader
-        train_data = dataloader_f(dataset,only_train=True,kwargs=hyper_params)
+        train_data = dataloader_f[model_name](dataset,only_train=True,kwargs=hyper_params)
         train_predictions = model.predict(train_data)
         to_return = (*to_return, train_predictions)
 

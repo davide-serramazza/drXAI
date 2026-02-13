@@ -11,7 +11,7 @@ pyximport.install(setup_args={
 import pandas as pd
 from pandas import DataFrame, Series
 from tselect.channel_selectors.tselect import TSelect
-from utils.data_utils import load_datasets
+from utils.load_datasets import load_datasets
 import os
 from numpy import savez_compressed
 from aeon.transformations.collection.channel_selection import ElbowClassSum, ElbowClassPairwise

@@ -13,7 +13,7 @@ default_hyperparams = {
 	'data_path': 'Dataset/UEA/', 'Norm': False,  'val_ratio': 0.1, 'print_interval': 10, 'Net_Type': ['C-T'],
 	'emb_size': 16, 'dim_ff': 256, 'num_heads': 8,   'Fix_pos_encode': 'tAPE', 'Rel_pos_encode': 'eRPE',
 	'epochs': 100,'batch_size': 256, 'lr': 1e-3, 'dropout': 0.01, 'val_interval': 2, 'key_metric': 'accuracy',
-	'gpu': 0,  'console': False, 'output_dir': 'Results/Dataset/UEA/',
+	'gpu': 0, 'early_stop_counter' :20, 'console': False, 'output_dir': 'Results/Dataset/UEA/',
 }
 
 def build_ConvTran_model(config,shape, n_labels, device="cuda", verbose=False):

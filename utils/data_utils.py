@@ -1,18 +1,11 @@
-import os
-
-import aeon.datasets
 import numpy as np
-import h5py
 
-from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedShuffleSplit
 from torch.utils.data import DataLoader
 from aeon.datasets import load_from_ts_file
 from models.ConvTran.utils import dataset_class
 from models.aaltd2024.code.utils import Dataset
 
-
-#from datasets import load_dataset
 
 
 def sample_instances(X , y_true, y_pred, n):
@@ -53,62 +46,6 @@ def sample_instances(X , y_true, y_pred, n):
 	return  np.concatenate(X_sampled), np.concatenate(y_sampled), np.concatenate(sample_idx)
 
 
-def load_datasets(dataset_dir, current_dataset ):
-
-	# load data
-	if current_dataset.count("monster")>0:
-		# CASE FOR MONSTER DATASETS
-		current_dataset = current_dataset.split("--")[-1]
-		snapshot_id = os.listdir(os.path.join(dataset_dir,"snapshots"))[0]
-		dataset_dir = os.path.join(dataset_dir,"snapshots",snapshot_id)
-
-		print(f"Loading MONSTER dataset {current_dataset} from snapshot {snapshot_id}\n")
-
-		X= np.load(os.path.join(dataset_dir, f"{current_dataset}_X.npy"))
-		y = np.load(os.path.join(dataset_dir, f"{current_dataset}_y.npy"))
-		# load the folds
-		folds = [ np.loadtxt(os.path.join(dataset_dir,'test_indices_fold_'+str(i)+".txt")).astype(int) for i in range(5) ]
-		# test set is the last fold,everything else is train set
-		X_test = X[folds[-1]]	; y_test = y[folds[-1]]
-		X_train = np.concatenate( [ X[folds[i]] for i in range(4)] ) ; y_train =  np.concatenate( [ y[folds[i]] for i in range(4)] )
-
-	elif current_dataset.endswith(".h5"):
-		# case for synthetic .h5 files
-		with h5py.File(dataset_dir, 'r') as f:
-			X_train = f['train/X'][:]
-			y_train = f['train/y'][:]
-			X_test = f['test/X'][:]
-			y_test = f['test/y'][:]
-			current_dataset = current_dataset.replace(".h5","")
-	else:
-		X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, "_".join((current_dataset, "TRAIN.ts"  ))  ))
-		X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, "_".join((current_dataset, "TEST.ts"  ))  ))
-
-	y_train, y_test,labels_map = to_numeric_labels(y_train, y_test)
-
-
-	# data structure for dataset
-	data = {'train_set': {}, 'test_set': {}, 'name': current_dataset}
-
-	# setting train, test sets and label map
-	data['train_set']['X'] = X_train;	data['test_set']['X'] = X_test
-	data['train_set']['y'] = y_train;	data['test_set']['y'] = y_test
-	data['labels_map'] = labels_map
-
-	print(f"Loaded {current_dataset} dataset with {X_train.shape[0]} training samples and {X_test.shape[0]} test samples"
-		  f" and {len(labels_map)} classes\n")
-
-	return data
-
-
-def to_numeric_labels(y_train, y_test):
-
-	# convert labels to idx
-	le = LabelEncoder()
-	y_train = le.fit_transform( y_train)
-	y_test = le.transform(y_test)
-
-	return  y_train, y_test,  le.classes_
 
 
 ################################ ConvTran functions #######################################

@@ -1,6 +1,6 @@
 #from utils.trainers_aeon import train
 from utils.trainers import train
-from utils.data_utils import load_datasets
+from utils.load_datasets import load_datasets
 # TODO should I move some functions in other files?
 from utils.helpers import *
 
@@ -27,7 +27,7 @@ def main(args):
 	# data structure where results will be stored
 	results = {}
 
-	for f in sorted(os.listdir(args.dataset_dir ) ):
+	for f in sorted(os.listdir(args.dataset_dir ) ) [:1]:
 
 		# load data
 		dataset_dir = os.path.join(base_path,f)
@@ -105,7 +105,6 @@ def main(args):
 					'training_time' : np.mean(story['training_time']),
 					'story' : story,
 				}
-
 			np.save(results_file, results)
 
 
