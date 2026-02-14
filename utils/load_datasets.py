@@ -22,8 +22,14 @@ def load_datasets(dataset_dir, current_dataset ):
         # load the folds
         folds = [ np.loadtxt(os.path.join(dataset_dir,'test_indices_fold_'+str(i)+".txt")).astype(int) for i in range(5) ]
         # test set is the last fold,everything else is train set
-        X_test = X[folds[-1]]	; y_test = y[folds[-1]]
-        X_train = np.concatenate( [ X[folds[i]] for i in range(4)] ) ; y_train =  np.concatenate( [ y[folds[i]] for i in range(4)] )
+        last_fold = ( X[folds[-1]]	,  y[folds[-1]] )
+        first_folds = (np.concatenate( [ X[folds[i]] for i in range(4)] ) ,
+                        np.concatenate( [ y[folds[i]] for i in range(4)] ) )
+
+        if current_dataset=="MosquitoSound":
+            X_train, y_train = last_fold;  X_test, y_test = first_folds
+        else:
+            X_train, y_train = first_folds;  X_test, y_test = last_fold
 
     elif current_dataset.endswith(".h5"):
         # case for synthetic .h5 files

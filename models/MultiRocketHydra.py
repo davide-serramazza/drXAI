@@ -41,7 +41,10 @@ class MultiRocketHydra():
 
 		self.clf = RidgeClassifierCV(
 			alphas=np.logspace(-3, 3, 10)
-		)
+		) if self.batch_size == -1 else GridSearchCV(
+			estimator=RidgeClassifier(
+				solver='sparse_cg',max_iter=200,tol=0.0005),
+			param_grid={'alpha':np.logspace(-3, 3, 10)},cv=5,n_jobs=2)
 
 		self.batch_size = batch_size
 
@@ -52,6 +55,7 @@ class MultiRocketHydra():
 		Xt_hydra = []
 		n_batches = int(np.ceil(X.shape[0] / self.batch_size))
 		for i in range(n_batches):
+			print(i,"out of",n_batches)
 			current_x = X[i * self.batch_size: min((i + 1) * self.batch_size, X.shape[0])]
 			Xt_hydra.append(self.hydra.transform(current_x))
 		Xt_hydra = torch.cat(Xt_hydra, axis=0)
@@ -86,18 +90,27 @@ class MultiRocketHydra():
 
 	def _predict(self,X,y) -> np.ndarray:
 
+		results = []
+
 		if self.batch_size == -1:
-			Xt_hydra  = self.hydra.transform(X)
-		else:
-			Xt_hydra = self._batched_hydra(X)
+			self.batch_size = X.shape[0]
+		n_batches = int(np.ceil(X.shape[0] / self.batch_size))
 
-		Xt_hydra = self.hydra_scaler.transform(Xt_hydra).numpy()
+		for i in range(n_batches):
+			print(i,"out of",n_batches)
+			current_x = X[i * self.batch_size: min((i + 1) * self.batch_size, X.shape[0])]
 
-		Xt_multiRocket = self.multiRocket.transform(X)
+			Xt_hydra = self.hydra.transform(current_x)
+			Xt_hydra = self.hydra_scaler.transform(Xt_hydra).numpy()
 
-		Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
+			Xt_multiRocket = self.multiRocket.transform(current_x)
 
-		return self.clf.predict(Xt_total)
+			Xt_total = np.concatenate([Xt_hydra,Xt_multiRocket],axis=1)
+
+			results.append(self.clf.predict(Xt_total))
+
+		return np.concatenate(results)
+
 
 
 	def score(self,X,y):
