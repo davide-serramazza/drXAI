@@ -13,21 +13,22 @@ from utils.data_utils import load_data_ConvTran, dataloader_hydra, dataloader_ae
 from memory_profiler import  memory_usage
 
 exceptions = {
-    ('MRH', 'AudioMNIST')  : { 'batch_size': 2048},
-    ('MRH', 'MosquitoSound')  : { 'batch_size':2048, 'multiRocket_params' : {'n_kernels' : 3125}},
-    ('ConvTran' , 'h5_synth_data_small') : {'batch_size' : 128},
-    ('ConvTran' , 'CornellWhaleChallenge')  : {  'batch_size' : 8},
-    ('ConvTran' , 'FruitFlies')  : {  'batch_size' : 6},
-    ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12},
-    ('hydra', 'AudioMNIST')  :  { 'batch_size' : 64} ,
-    ('inceptionTime', 'EigenWorms')  :  { 'batch_size' : 128} ,
+    ('MRH', 'MosquitoSound')  : { 'batch_size':24000, 'multiRocket_params' : {'n_kernels' : 3125}},
+    ('MRH', 'WhaleSounds') : { 'batch_size':24000, 'multiRocket_params' : {'n_kernels' : 3125}},
+
 
     ('ConvTran' , 'arc_loss') : {  'batch_size' : 64},
-    ('ConvTran' ,'RightWhaleCalls') : {  'batch_size' : 4},
-    ('inceptionTime' ,'RightWhaleCalls') : {  'batch_size' : 128},
+    ('ConvTran' , 'h5_synth_data_small') : {'batch_size' : 128},
+    ('ConvTran' ,'RightWhaleCalls') : {  'batch_size' : 8,'early_stop_counter':10},
+    ('ConvTran' , 'CornellWhaleChallenge')  : {  'batch_size' : 8,'early_stop_counter':10},
+    ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12,'early_stop_counter':10},
+    ('ConvTran', 'WhaleSounds')  : { 'batch_size':16,'early_stop_counter':10},
+
     ('inceptionTime' , 'arc_loss') : {  'batch_size' : 128},
-    ('hydra', 'AudioMNIST')  :  { 'batch_size' : 64} ,
-    ('inceptionTime', 'EigenWorms')  :  { 'batch_size' : 128}
+    ('inceptionTime' ,'RightWhaleCalls') : { 'early_stop_counter':10},
+    ('inceptionTime' , 'CornellWhaleChallenge')  : {  'early_stop_counter':10},
+    ('inceptionTime' , 'MosquitoSound') : { 'early_stop_counter':10},
+    ('inceptionTime', 'WhaleSounds')  : { 'early_stop_counter':10}
 }
 
 
@@ -163,7 +164,7 @@ def train(dataset, model_name, return_train_predictions=False):
     """
 
     # get optional hyper parameters for specific model/dataset combinations
-    key = (model_name,dataset['name'])
+    key = (model_name, dataset['name'].split('_downsampled_')[0] )
     hyper_params = exceptions[key] if key in exceptions else {}
 
     # set data loaders, trainer and score functions according to current model

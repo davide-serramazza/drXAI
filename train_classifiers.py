@@ -27,13 +27,13 @@ def main(args):
 	# data structure where results will be stored
 	results = {}
 
-	for f in sorted(os.listdir(args.dataset_dir ) ) [:1]:
+	for f in sorted(os.listdir(args.dataset_dir ) ) :
 
 		# load data
 		dataset_dir = os.path.join(base_path,f)
 		original_data = load_datasets(dataset_dir, f)
 		current_dataset_name = original_data['name']
-		print("\n\n current loaded dataset is....", original_data['name'])
+		print("current loaded dataset is....", original_data['name'])
 
 		if selection_dir:
 			# if selection was provided, load the npy array then extract selections and relative names
