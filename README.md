@@ -1,5 +1,4 @@
-# drXAI: Scaling Time Series Classification via
-XAI-Driven Data Reduction
+# drXAI: Scaling Time Series Classification via XAI-Driven Data Reduction
 
 ## Overview
 Temporary repo for "drXAI: Scaling Time Series Classification via
@@ -38,11 +37,11 @@ Executables are:
 ### train_classifier.py
 Trains a classifier on a either original dataset or a reduced dataset.
 
-## get_selection.py
+### get_selection.py
 Generates a selection of features based on the global feature importance scores.
 Only tested using hydra as "explainer classifier"
 
-## baselines.py:
+### baselines.py:
 Used to achieve baseline selections in our experiments. It used a different venv
 
 ## Data:
