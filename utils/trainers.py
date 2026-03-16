@@ -18,21 +18,23 @@ exceptions = {
 
 
     ('ConvTran' , 'arc_loss') : {  'batch_size' : 64},
-    ('ConvTran' , 'h5_synth_data_small') : {'batch_size' : 128},
     ('ConvTran' ,'RightWhaleCalls') : {  'batch_size' : 8,'early_stop_counter':10},
     ('ConvTran' , 'CornellWhaleChallenge')  : {  'batch_size' : 8,'early_stop_counter':10},
     ('ConvTran' , 'MosquitoSound') : {  'batch_size' : 12,'early_stop_counter':10},
     ('ConvTran', 'WhaleSounds')  : { 'batch_size':16,'early_stop_counter':10},
+    ('ConvTran' , 'UrbanSound') : {'batch_size':1},
+    ('ConvTran', 'syntheticUni')  : {  'batch_size' : 1, 'early_stop_counter':10},
+
 
     ('inceptionTime' , 'arc_loss') : {  'batch_size' : 128},
     ('inceptionTime' ,'RightWhaleCalls') : { 'early_stop_counter':10},
     ('inceptionTime' , 'CornellWhaleChallenge')  : {  'early_stop_counter':10},
     ('inceptionTime' , 'MosquitoSound') : { 'early_stop_counter':10},
-    ('inceptionTime', 'WhaleSounds')  : { 'early_stop_counter':10}
+    ('inceptionTime', 'WhaleSounds')  : { 'early_stop_counter':10},
+    ('inceptionTime', 'syntheticUni')  : {  'batch_size' : 60, 'early_stop_counter':10},
 }
 
 
-# TODO move in a different place?
 def profile_function(func, *args, **kwargs):
     """
 	profile a function's memory usage and runtime
@@ -144,7 +146,7 @@ def _train_inceptionTime(train_data, val_data, **kwargs):
     early_stop_counter=20 if 'early_stop_counter' not in kwargs else kwargs['early_stop_counter']
     model = InceptionTime(train_data, val_data, batch_size=batch_size, filters=32, depth=6, models=5,
                           early_stop_counter=early_stop_counter)
-    model.fit(learning_rate=1e-3,epochs=100,verbose=True)
+    model.fit(learning_rate=1e-3,epochs=100,verbose=False)
 
     return model
 

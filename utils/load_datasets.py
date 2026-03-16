@@ -11,7 +11,6 @@ def load_datasets(dataset_dir, current_dataset ):
     # load data
     if current_dataset.count("monster")>0:
         # CASE FOR MONSTER DATASETS
-        current_dataset = current_dataset.split("--")[-1]
         snapshot_id = os.listdir(os.path.join(dataset_dir,"snapshots"))[0]
         dataset_dir = os.path.join(dataset_dir,"snapshots",snapshot_id)
 
@@ -26,6 +25,8 @@ def load_datasets(dataset_dir, current_dataset ):
         first_folds = (np.concatenate( [ X[folds[i]] for i in range(4)] ) ,
                         np.concatenate( [ y[folds[i]] for i in range(4)] ) )
 
+        current_dataset = current_dataset.split("--")[-1]
+
         if current_dataset=="MosquitoSound":
             X_train, y_train = last_fold;  X_test, y_test = first_folds
         else:
@@ -39,7 +40,14 @@ def load_datasets(dataset_dir, current_dataset ):
             X_test = f['test/X'][:]
             y_test = f['test/y'][:]
             current_dataset = current_dataset.replace(".h5","")
-    else:
+
+    elif current_dataset.endswith(".npy"):
+        data = np.load(dataset_dir,allow_pickle=True ).item()
+        X_train,  y_train = data['train']['X'], data['train']['y']
+        X_test, y_test = data['test']['X'], data['test']['y']
+        current_dataset = current_dataset.replace(".npy","")
+
+    else :
         X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, "_".join((current_dataset, "TRAIN.ts"  ))  ))
         X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, "_".join((current_dataset, "TEST.ts"  ))  ))
 

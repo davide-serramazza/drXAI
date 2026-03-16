@@ -13,7 +13,6 @@ def main(args):
 	results_dir = args.explainer_results_dir
 	random_seed = args.random_seed
 
-	# TODO should we select the classifier here????
 	# extract classifier and batch size argument
 	model_names, batch_sizes = extract_classifiers_batchSizes(args.classifiers_batchSizes)
 	channel_selection = extraction_method(args.channel_selection, args.time_point_selection)
@@ -65,8 +64,7 @@ def main(args):
 
 			for b_name in backgrounds2use:
 
-				# for each background initialise result dict, then explain
-				# TODO do I still need to index "model_name" in results data structure??
+				# for each background initialize result's dictionary, then explain
 				results[model_name][b_name] = {}
 				key_prefix = 'selected_channels_' if channel_selection else 'selected_timePoints_'
 
@@ -76,7 +74,6 @@ def main(args):
 				for exp_name in explainers2use:
 					drxai = drXAI(channel_selection=channel_selection, classifier=model,dataset_X=X2explain,
 								  dataset_y=labels, explainer_name=exp_name, background_name=b_name,
-								  # TODO what to do about this batch_size ????
 								  explainer_kwargs={'batch_size':batch_size}
 								  )
 					selections, attribution,exp_time = drxai.get_selection()
@@ -107,7 +104,6 @@ if __name__ == '__main__':
 	parser.add_argument("explainer_results_dir", type=str, help="directory where to save classifiers and "
 				 "attributions info including related selection. Format is one file per dataset")
 	parser.add_argument("random_seed", type=int, help="random seed to be used for reproducibility")
-	# TODO should we select the classifier here???? Should I fix hydra as the only classifiers here??
 	parser.add_argument("--classifiers_batchSizes", nargs='+',help="classifier name is either hydra,"
 																   "miniRocket or ConvTran")
 	parser.add_argument('--channel_selection',type=str2bool, default=False, help="whether to perform "

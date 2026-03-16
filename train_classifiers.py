@@ -27,7 +27,7 @@ def main(args):
 	# data structure where results will be stored
 	results = {}
 
-	for f in sorted(os.listdir(args.dataset_dir ) ) :
+	for f in sorted(os.listdir(args.dataset_dir ) ):
 
 		# load data
 		dataset_dir = os.path.join(base_path,f)
@@ -76,9 +76,12 @@ def main(args):
 
 				for i in range(3):
 					print("training",(i+1),"-th model ...")
-					# TODO use **kwargs to say which value is which param?
 					model, current_accuracy, mem_used, training_time = elapsed_time(
-						train, {'dataset':data,'model_name':model_name,'return_train_predictions':False}
+						train, {
+							'dataset':data,
+							'model_name':model_name,
+							'return_train_predictions':False
+							}
 					)
 
 					story['accuracy'].append(current_accuracy)

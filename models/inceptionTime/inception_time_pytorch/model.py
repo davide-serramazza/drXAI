@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-from sklearn.utils.class_weight import compute_class_weight
 
 from ..inception_time_pytorch.modules import InceptionModel
 
@@ -97,7 +96,7 @@ class InceptionTime():
             True if the training history should be printed in the console, False otherwise.
         '''
         
-        # Generate the training dataset.
+        # Generate dataloaders for training and validation set.
         dataset_train = torch.utils.data.DataLoader(
             dataset=torch.utils.data.TensorDataset(self.x_train, self.y_train),
             batch_size=self.batch_size,
@@ -130,16 +129,13 @@ class InceptionTime():
                     loss = loss_fn(output, target.to(self.device))
                     loss.backward()
                     optimizer.step()
-                    #accuracy = (torch.argmax(torch.nn.functional.softmax(output, dim=-1), dim=-1) == target).float().sum() / target.shape[0]
-
-
-
 
                 # validation step
                 with torch.no_grad():
                     loss = 0.0 ; accuracy = 0.0 ; n_samples = 0
                     for features, target in dataset_val:
                         output = self.models[m](features.to(self.device))
+                        # compute loss and accuracy on validation set
                         loss += loss_fn(output, target.to(self.device)).item()*target.shape[0]
                         accuracy +=  torch.sum(torch.argmax(torch.nn.functional.softmax(output, dim=-1), dim=-1) == target)
                         n_samples += target.shape[0]
@@ -147,7 +143,7 @@ class InceptionTime():
                     if verbose:
                         print('epoch: {}, validation loss: {:,.6f},validation accuracy: {:.6f}'.format(1 + epoch, loss, accuracy))
 
-
+                # update variables for early stopping
                 if loss < best_loss:
                     best_loss = loss    ;   best_accuracy = accuracy    ;     non_improvement_count = 0
                     torch.save(self.models[m], f'tmp/tmp_inceptionTime_{m + 1}.pth')
@@ -161,6 +157,7 @@ class InceptionTime():
 
             print('Training over, best loss: {:,.3f}, best accuracy: {:.3f}'.format(
                                                                                     best_loss, best_accuracy))
+            # load the best model found so far
             self.models[m] = torch.load(f'tmp/tmp_inceptionTime_{m + 1}.pth', map_location=self.device,
                                                 weights_only=False)
             self.models[m].train(False)

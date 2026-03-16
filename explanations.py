@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils.channels_extraction import _detect_knee_point
+from utils.elbow_extraction import _detect_knee_point
 
 ####################### functions to extract and order time points selection ##############
 def extract_timePoints_features_names(attribution):
