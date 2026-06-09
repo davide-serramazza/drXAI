@@ -45,4 +45,4 @@ Only tested using hydra as "explainer classifier"
 Used to achieve baseline selections in our experiments. It used a different venv
 
 ## Data:
-Models, datasets, selections and results are available here https://zenodo.org/records/19045954
+Trained models, datasets, selections and results are available through [zenodo](https://zenodo.org/records/20604796)
