@@ -23,6 +23,23 @@ All our code and data are openly available.
 
 ## Results
 
+Mean accuracy of each selection (and All Features) for the 4 MTSC real-world datasets and the 3 SOTA classifiers, 
+yielding 12 results in total.
+![image](https://github.com/davide-serramazza/drXAI/blob/main/images/multi_acc_withRandom.png)
+
+Mean percentage of data saved by each selection for the 4 MTSC datasets.
+![image](https://github.com/davide-serramazza/drXAI/blob/main/images/multi_savedData_withRandom)
+Looking at the two above tables, only our methodology (drXAI) is at the top both for accuracy and data reduction.
+
+
+Mean accuracy of each selection (and All Features) for the 5 UTSC  datasets used and the 3 classifiers, 
+yielding 15 results in total.
+![image](https://github.com/davide-serramazza/drXAI/blob/main/images/uni_acc_withRandom.png)
+
+Mean percentage of data saved of each selection for the 5 UTSC datasets.
+![image](https://github.com/davide-serramazza/drXAI/blob/main/images/uni_savedData_withRandom.png)
+
+Looking at the two above tables, only our methodology (drXAI) is at the top both for accuracy and data reduction.
 
 
 ## Code:
