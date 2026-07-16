@@ -29,8 +29,10 @@ yielding 12 results in total.
 
 Mean percentage of data saved by each selection for the 4 MTSC datasets.
 ![image](https://github.com/davide-serramazza/drXAI/blob/main/images/multi_savedData_withRandom)
+
 Looking at the two above tables, only our methodology (drXAI) is at the top both for accuracy and data reduction.
 
+<br>
 
 Mean accuracy of each selection (and All Features) for the 5 UTSC  datasets used and the 3 classifiers, 
 yielding 15 results in total.
