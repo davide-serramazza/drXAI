@@ -15,7 +15,7 @@ class drXAI:
 		assert len(dataset_X.shape)==3
 		assert len(dataset_y.shape)==1
 		assert explainer_name in [ "FeatureAblation", "SHAP"]
-		assert background_name in ["zeros","SMOTE","Proto"]
+		assert background_name in ["zeros","Proto"]
 
 		self.__classifier=classifier
 		self.__channel_selection=channel_selection # True if channel_selection , False if time point selection

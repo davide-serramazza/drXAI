@@ -17,7 +17,12 @@ def extract_features(data, selection,channel_selection):
 	return data
 
 def extract_timePoints( data, selection):
-	# TODO documentation
+	"""
+	function to extract time points from selections
+	:param data: dictionary containing train and test sets
+	:param selection: selection as a list of "start point:end point"
+	:return: reduced train and test sets
+	"""
 
 	train_x, test_x = data['train_set']['X'], data['test_set']['X']
 	new_data_train, new_data_test = [], []
@@ -45,8 +50,8 @@ def save_model(file_name, model, model_name, saved_models_dir):
 									   "".join((file_name + ".pth"))
 		))
 	else:
-		with open(os.path.join(saved_models_dir,
-							   "".join((file_name + ".pkl"))), 'wb') as f:
+		with open(os.path.join(
+				saved_models_dir, "".join((file_name + ".pkl"))), 'wb') as f:
 			pickle.dump(model, f)
 
 
@@ -59,21 +64,9 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 		if k=='labels_map':
 			continue
 
-	# TODO remove this comments
-		# TDO to remove this???
-		#if k=='accuracy':
-			# prepare an entry in dict for current classifier
-		#	model_name = info.replace("_","")
-		#	init_acc = saliency_map_dict[k]
-		#	if model_name in selection_dict.keys():
-				# select only if in required classifiers!
-		#		selection_dict[model_name]['initial accuracy']  =  init_acc
-
 		elif k==main_key2find:
-			#k_name = k.replace(key2find,'')
 			_, model_name, background, explainer = info.split("_")
 
-			# TODO extract a function here?
 			if saliency_map_dict[main_key2find]!=[]:
 				selection =saliency_map_dict[main_key2find]
 			else:
@@ -82,7 +75,7 @@ def get_computed_AI_selections(saliency_map_dict, channel_sel, selection_dict,  
 				selection = saliency_map_dict[k1] if saliency_map_dict[k1]!=None else saliency_map_dict[k2]
 				print(k1,"as alternative")
 
-			selection_dict[model_name]['_'.join((explainer,background))] =  selection
+			selection_dict['_'.join((model_name, explainer,background))] =  selection
 
 
 		elif type(saliency_map_dict[k])==dict :

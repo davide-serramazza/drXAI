@@ -1,6 +1,6 @@
 #from utils.trainers_aeon import train
 from utils.trainers import train
-from utils.data_utils import load_datasets
+from utils.load_datasets import load_datasets
 # TODO should I move some functions in other files?
 from utils.helpers import *
 
@@ -17,38 +17,39 @@ def main(args):
 
 	# testing if classifier's list is in the allowed range
 	model_names = args.classifiers
-	all_clfs_allowed = np.all( [ m in ["HC2" ,"drCIF" ,"MRH" ,"ConvTran","hydra","inceptionTime"] for m in model_names ] )
+	all_clfs_allowed = np.all( [ m in ["HC2" ,"drCIF" ,"MRH" ,"ConvTran","hydra",""] for m in model_names ] )
 	if all_clfs_allowed == False : raise ValueError("invalid classifier name(s)")
 
 	results_file = args.result_file
-	selected_features = args.selection_dir
+	selection_dir = args.selection_dir
 	channel_selection = args.channel_selection
 
 	# data structure where results will be stored
 	results = {}
 
-	for f in sorted(os.listdir(args.dataset_dir ) ):
+	for f in sorted(os.listdir(args.dataset_dir ) )[1:]:
 
 		# load data
 		dataset_dir = os.path.join(base_path,f)
 		original_data = load_datasets(dataset_dir, f)
 		current_dataset_name = original_data['name']
-		print("\n\n current loaded dataset is....", original_data['name'])
+		print("current loaded dataset is....", original_data['name'])
 
-		if selected_features:
+		if selection_dir:
 			# if selection was provided, load the npy array then extract selections and relative names
-			selected_features_file_name = os.path.join(selected_features, current_dataset_name + "_results.npz")
-			selected_features_file = np.load(selected_features_file_name,allow_pickle=True)['results'].item()
+			selection_file_names = [f for f in os.listdir(selection_dir) if (current_dataset_name in f and f.endswith(".npz")) ]
+			selected_features_files = [ np.load(os.path.join(selection_dir,f),allow_pickle=True)['results'].item()
+										for f in selection_file_names ]
 
-			selections = get_computed_AI_selections(
-				saliency_map_dict=selected_features_file,channel_sel=channel_selection,
-				# TODO remove hydra level from selection_dict????
-				selection_dict={'hydra':{}}, info="")
+			# initialize selection dictionary as empty dict
+			selection_dict = {}
+			for s in selected_features_files:
+				selection_dict = get_computed_AI_selections(
+					saliency_map_dict=s,channel_sel=channel_selection,
+					selection_dict=selection_dict, info="")
 		else:
 			# train on all features
-			#TODO remove hydra level from selection_dict????
-			#TODO add 'allFeatures' level in this case?
-			selections = {'hydra': {'allFeatures':None }}
+			selection_dict = {'allFeatures': {'allFeatures':None } }
 
 		results[current_dataset_name] = {}
 
@@ -56,14 +57,13 @@ def main(args):
 
 			results[current_dataset_name][model_name] = {}
 
-			# TODO to remove hydra level from selection_dict????
-			for selection_name, selected_f in selections['hydra'].items():
+			for selection_name, selected_f in selection_dict.items():
 
 				# extract features from original data if necessary
 				data = original_data if selection_name=="allFeatures" else \
 				extract_features(deepcopy(original_data) , selected_f,channel_selection)
 
-				print("current evaluated selection is", selection_name)
+				print("current evaluated selection is", selection_name, "of dataset", current_dataset_name)
 
 				# prepare a dataset to save stats on the following training
 				best_accuracy = -1
@@ -74,11 +74,14 @@ def main(args):
 					'training_time' : []
 				}
 
-				for i in range(5):
+				for i in range(3):
 					print("training",(i+1),"-th model ...")
-					# TODO use **kwargs to say which value is which param?
 					model, current_accuracy, mem_used, training_time = elapsed_time(
-						train, {'dataset':data,'model_name':model_name,'return_train_predictions':False}
+						train, {
+							'dataset':data,
+							'model_name':model_name,
+							'return_train_predictions':False
+							}
 					)
 
 					story['accuracy'].append(current_accuracy)
@@ -105,7 +108,6 @@ def main(args):
 					'training_time' : np.mean(story['training_time']),
 					'story' : story,
 				}
-
 			np.save(results_file, results)
 
 
