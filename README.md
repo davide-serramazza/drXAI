@@ -28,7 +28,7 @@ yielding 12 results in total.
 ![image](https://github.com/davide-serramazza/drXAI/blob/main/images/multi_acc_withRandom.png)
 
 Mean percentage of data saved by each selection for the 4 MTSC datasets.
-![image](https://github.com/davide-serramazza/drXAI/blob/main/images/multi_savedData_withRandom)
+![image](https://github.com/davide-serramazza/drXAI/blob/main/images/multi_savedData_withRandom.png)
 
 Looking at the two above tables, only our methodology (drXAI) is at the top both for accuracy and data reduction.
 
