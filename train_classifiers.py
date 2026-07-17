@@ -27,7 +27,7 @@ def main(args):
 	# data structure where results will be stored
 	results = {}
 
-	for f in sorted(os.listdir(args.dataset_dir ) )[1:]:
+	for f in sorted(os.listdir(args.dataset_dir ) ):
 
 		# load data
 		dataset_dir = os.path.join(base_path,f)
